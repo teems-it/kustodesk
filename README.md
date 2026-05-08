@@ -6,7 +6,7 @@
 ![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?style=flat&logo=node.js&logoColor=white)
 ![Azure](https://img.shields.io/badge/Azure-Data%20Explorer-0078D4?style=flat&logo=microsoftazure&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey?style=flat)
-![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat)
+![License](https://img.shields.io/badge/License-GPLv3-blue?style=flat)
 
 ---
 
@@ -179,9 +179,9 @@ Cluster configurations and query history are stored as JSON files in your OS use
 
 | OS | Location |
 |---|---|
-| macOS | `~/Library/Application Support/kustodesk/` |
-| Windows | `%APPDATA%\kustodesk\` |
-| Linux | `~/.config/kustodesk/` |
+| macOS | `~/Library/Application Support/Kustodesk/` |
+| Windows | `%APPDATA%\Kustodesk\` |
+| Linux | `~/.config/Kustodesk/` |
 
 > ⚠️ Client secrets are stored in plain text in `clusters.json`. For production use, consider encrypting sensitive fields using Electron's `safeStorage` API.
 
