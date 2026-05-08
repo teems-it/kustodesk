@@ -1,7 +1,8 @@
 {
-  "name": "adx-reader",
+  "name": "kustodesk",
   "version": "1.0.0",
-  "description": "Azure Data Explorer Desktop Client",
+  "description": "Kustodesk — Azure Data Explorer Desktop Client",
+  "license": "GPL-3.0-only",
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
@@ -20,8 +21,8 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.teems-labs.adx-reader",
-    "productName": "ADX Reader",
+    "appId": "com.teems-labs.kustodesk",
+    "productName": "Kustodesk",
     "directories": {
       "output": "dist"
     },
