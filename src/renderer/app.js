@@ -317,6 +317,7 @@ function openModal(cluster = null) {
   const method = cluster?.authMethod || 'cli';
   setAuthTab(method);
   const cfg = cluster?.authConfig || {};
+  $('input-cli-tenant').value   = (method === 'cli' ? cfg.tenantId : '') || '';
   $('input-dc-tenant').value    = cfg.tenantId || '';
   $('input-dc-client').value    = cfg.clientId || '';
   $('input-app-tenant').value   = cfg.tenantId || '';
@@ -347,7 +348,9 @@ function getModalCluster() {
   const authMethod = state.activeAuthTab;
 
   let authConfig = {};
-  if (authMethod === 'device-code') {
+  if (authMethod === 'cli') {
+    authConfig = { tenantId: $('input-cli-tenant').value.trim() };
+  } else if (authMethod === 'device-code') {
     authConfig = { tenantId: $('input-dc-tenant').value.trim(), clientId: $('input-dc-client').value.trim() };
   } else if (authMethod === 'app-registration') {
     authConfig = {

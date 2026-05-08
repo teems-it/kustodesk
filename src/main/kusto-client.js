@@ -20,9 +20,28 @@ class KustoClientManager {
 
   _buildKcsb(url, authMethod, authConfig = {}, onDeviceCodeMessage) {
     switch (authMethod) {
-      case 'cli':
-        // Built-in az login support — no @azure/identity needed
-        return KustoConnectionStringBuilder.withAzLoginIdentity(url);
+      case 'cli': {
+        // Directly invoke `az account get-access-token` — identical to what works in terminal.
+        // withAzLoginIdentity uses @azure/identity internally which misbehaves in Electron
+        // (wrong resource scope, PATH issues, tenant resolution). This is the reliable fallback.
+        const { execSync } = require('child_process');
+
+        const tokenCallback = async () => {
+          const tenantArg = authConfig.tenantId ? `--tenant ${authConfig.tenantId}` : '';
+          // Request a token scoped to the Kusto service (public Azure cloud)
+          const cmd = `az account get-access-token --resource https://kusto.kusto.windows.net ${tenantArg} --output json`;
+          try {
+            const out = execSync(cmd, { encoding: 'utf8', timeout: 30000 });
+            const data = JSON.parse(out);
+            return data.accessToken;
+          } catch (err) {
+            throw new Error(`az CLI token acquisition failed: ${err.message || err}`);
+          }
+        };
+
+        // withTokenProvider calls our callback each time a token is needed (handles refresh)
+        return KustoConnectionStringBuilder.withTokenProvider(url, tokenCallback);
+      }
 
       case 'device-code':
         // Built-in device code flow with optional callback
@@ -42,7 +61,7 @@ class KustoClientManager {
         );
 
       default:
-        return KustoConnectionStringBuilder.withAzLoginIdentity(url);
+        throw new Error(`Unknown auth method: ${authMethod}`);
     }
   }
 

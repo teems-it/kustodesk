@@ -1,4 +1,25 @@
 // src/main/main.js
+
+// ── macOS PATH fix ────────────────────────────────────────────────────────────
+// Electron on macOS doesn't inherit the full shell PATH, so `az` (installed via
+// Homebrew) is not found when AzureCliCredential tries to call `az account get-access-token`.
+// Prepend the common locations here so it works regardless of how the app was launched.
+if (process.platform === 'darwin' || process.platform === 'linux') {
+  const extraPaths = [
+    '/opt/homebrew/bin',       // macOS Apple Silicon (Homebrew)
+    '/usr/local/bin',          // macOS Intel (Homebrew) / common Linux
+    '/home/linuxbrew/.linuxbrew/bin', // Linux Homebrew
+    '/usr/bin',
+    '/bin',
+  ];
+  const current = process.env.PATH || '';
+  const parts = current.split(':').filter(Boolean);
+  for (const p of extraPaths.reverse()) {
+    if (!parts.includes(p)) parts.unshift(p);
+  }
+  process.env.PATH = parts.join(':');
+}
+
 const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const path = require('path');
 const { KustoClientManager } = require('./kusto-client');

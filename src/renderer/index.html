@@ -230,6 +230,11 @@
           Uses your existing <code style="color:var(--text-accent);">az login</code> session.<br/>
           No extra configuration needed — just make sure you're logged in via the Azure CLI.
         </p>
+        <div class="form-group" style="margin-top:10px;">
+          <label class="form-label" for="input-cli-tenant">Tenant ID <span class="text-muted">(optional)</span></label>
+          <input type="text" id="input-cli-tenant" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+          <div class="form-hint">Only needed if you're a guest in multiple tenants and need a specific one.</div>
+        </div>
       </div>
 
       <!-- Device Code panel -->
