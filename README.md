@@ -189,4 +189,4 @@ Cluster configurations and query history are stored as JSON files in your OS use
 
 ## License
 
-GNU General Public License v3.0 © [teems-labs](https://github.com/teems-labs)
+GNU General Public License v3.0 © [teems.it](https://github.com/teems-it)
