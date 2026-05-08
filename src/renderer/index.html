@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ADX Reader — Azure Data Explorer Client</title>
+  <meta name="description" content="Desktop client for Azure Data Explorer with Entra ID authentication" />
+  <link rel="stylesheet" href="styles/main.css" />
+  <!-- CodeMirror 5 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ── Header ───────────────────────────────────────────────────────────── -->
+  <header id="header">
+    <div class="drag-spacer"></div>
+    <div class="app-logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+      </svg>
+      <div>
+        <div class="app-title">ADX Reader</div>
+        <div class="app-subtitle">Azure Data Explorer</div>
+      </div>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="header-actions">
+      <button class="btn btn-icon" id="btn-new-cluster" title="Add cluster">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Add Cluster
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+  <aside id="sidebar">
+
+    <!-- Clusters section -->
+    <div class="sidebar-section" style="flex: 0 0 auto; max-height: 50%;">
+      <div class="sidebar-header">
+        <span>Clusters</span>
+      </div>
+      <div class="sidebar-list" id="cluster-list">
+        <div class="text-muted" style="padding: 8px; font-size:11px;">No clusters added yet.</div>
+      </div>
+    </div>
+
+    <!-- History section -->
+    <div class="sidebar-section">
+      <div class="sidebar-header">
+        <span>History</span>
+        <button class="btn btn-icon" id="btn-clear-history" title="Clear history" style="padding:2px 4px;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+            <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+          </svg>
+        </button>
+      </div>
+      <div class="sidebar-list" id="history-list">
+        <div class="text-muted" style="padding: 8px; font-size:11px;">No history yet.</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── Main Panel ────────────────────────────────────────────────────────── -->
+  <main id="main">
+
+    <!-- Toolbar -->
+    <div id="toolbar">
+      <span class="db-label">Database:</span>
+      <select id="db-select" style="min-width:160px;">
+        <option value="">— select cluster first —</option>
+      </select>
+      <button class="btn btn-icon" id="btn-refresh-dbs" title="Refresh databases">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Query editor -->
+    <div id="editor-container" style="height:220px; min-height:80px; max-height:60vh;">
+      <textarea id="query-editor" placeholder="// Write your Kusto query here&#10;// Press Ctrl+Enter (Cmd+Enter on Mac) to run&#10;StormEvents | take 10"></textarea>
+      <div id="editor-resize-handle"></div>
+    </div>
+
+    <!-- Action bar -->
+    <div id="query-actions">
+      <button class="btn btn-primary" id="btn-run">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        Run Query
+      </button>
+      <span class="shortcut-hint" id="run-hint">⌘↵</span>
+      <div class="spacer"></div>
+      <button class="btn" id="btn-export-csv" disabled>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Export CSV
+      </button>
+      <button class="btn btn-icon" id="btn-copy-results" disabled title="Copy as JSON">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Results panel -->
+    <div id="results-panel">
+      <div id="results-tabs">
+        <button class="results-tab active" data-tab="table" id="tab-table">Table</button>
+        <button class="results-tab" data-tab="json" id="tab-json">JSON</button>
+        <div class="results-tab-spacer"></div>
+        <span id="results-count" class="text-muted" style="font-size:11px; align-self:center;"></span>
+      </div>
+
+      <div id="results-content">
+        <!-- Loading -->
+        <div id="results-loading">
+          <div class="spinner"></div>
+          <span>Running query…</span>
+        </div>
+
+        <!-- Empty state -->
+        <div id="results-empty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+          </svg>
+          <p>No results yet</p>
+          <small>Select a cluster, choose a database, and run a query</small>
+        </div>
+
+        <!-- Error state -->
+        <div id="results-error" class="hidden" style="padding:16px;">
+          <div class="error-box" id="error-message"></div>
+        </div>
+
+        <!-- Table view -->
+        <div id="table-view" class="hidden">
+          <table id="results-table">
+            <thead id="results-thead"></thead>
+            <tbody id="results-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- JSON view -->
+        <div id="json-view">
+          <pre id="json-content"></pre>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Status Bar ────────────────────────────────────────────────────────── -->
+  <div id="statusbar">
+    <div class="status-item">
+      <div class="status-dot" id="conn-dot"></div>
+      <span id="conn-status">No cluster selected</span>
+    </div>
+    <div class="status-item" id="status-auth-method" style="display:none;">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      <span id="auth-method-label"></span>
+    </div>
+    <div id="status-spacer"></div>
+    <span id="status-rows"></span>
+    <span id="status-time"></span>
+  </div>
+
+</div><!-- #app -->
+
+<!-- ── Device Code Banner ─────────────────────────────────────────────────── -->
+<div id="device-code-banner">
+  <div class="device-code-title">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px;">
+      <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+    Device Code Authentication
+  </div>
+  <pre id="device-code-text"></pre>
+  <button class="btn btn-icon" onclick="document.getElementById('device-code-banner').classList.remove('visible')" style="margin-top:8px;width:100%;justify-content:center;">Dismiss</button>
+</div>
+
+<!-- ── Cluster Modal ──────────────────────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="cluster-modal">
+  <div class="modal">
+    <div class="modal-title" id="cluster-modal-title">Add Cluster</div>
+
+    <div class="form-group">
+      <label class="form-label" for="input-cluster-name">Display Name</label>
+      <input type="text" id="input-cluster-name" placeholder="e.g. Production" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="input-cluster-url">Cluster URL</label>
+      <input type="url" id="input-cluster-url" placeholder="https://yourcluster.region.kusto.windows.net" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="input-default-db">Default Database <span class="text-muted">(optional)</span></label>
+      <input type="text" id="input-default-db" placeholder="e.g. MyDatabase" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Authentication Method</label>
+      <div class="auth-tab-bar">
+        <button class="auth-tab active" data-auth="cli" id="auth-tab-cli">Azure CLI</button>
+        <button class="auth-tab" data-auth="device-code" id="auth-tab-device">Device Code</button>
+        <button class="auth-tab" data-auth="app-registration" id="auth-tab-app">App Registration</button>
+      </div>
+
+      <!-- CLI panel -->
+      <div class="auth-panel active" id="auth-panel-cli">
+        <p style="font-size:11px; color:var(--text-secondary); line-height:1.6;">
+          Uses your existing <code style="color:var(--text-accent);">az login</code> session.<br/>
+          No extra configuration needed — just make sure you're logged in via the Azure CLI.
+        </p>
+      </div>
+
+      <!-- Device Code panel -->
+      <div class="auth-panel" id="auth-panel-device-code">
+        <div class="form-group" style="margin-top:10px;">
+          <label class="form-label" for="input-dc-tenant">Tenant ID <span class="text-muted">(optional)</span></label>
+          <input type="text" id="input-dc-tenant" placeholder="organizations (default)" />
+          <div class="form-hint">Leave blank to use any organizational account</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="input-dc-client">Client ID <span class="text-muted">(optional)</span></label>
+          <input type="text" id="input-dc-client" placeholder="Your app's Client ID (optional)" />
+        </div>
+      </div>
+
+      <!-- App Registration panel -->
+      <div class="auth-panel" id="auth-panel-app-registration">
+        <div class="form-group" style="margin-top:10px;">
+          <label class="form-label" for="input-app-tenant">Tenant ID *</label>
+          <input type="text" id="input-app-tenant" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="input-app-client">Client ID *</label>
+          <input type="text" id="input-app-client" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="input-app-secret">Client Secret *</label>
+          <input type="password" id="input-app-secret" placeholder="Your application secret" />
+        </div>
+      </div>
+    </div>
+
+    <div id="modal-error" class="error-box hidden"></div>
+
+    <div class="modal-actions">
+      <button class="btn" id="btn-modal-cancel">Cancel</button>
+      <button class="btn" id="btn-modal-test">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Test Connection
+      </button>
+      <button class="btn btn-primary" id="btn-modal-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ──────────────────────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/comment/comment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/display/placeholder.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
