@@ -1,0 +1,3 @@
+I need a desktop app. This app must be able to connect to Azure Data Explorer. I cannot access ADX with browser version of azure data explorer app but I can by calling it from terminal.
+I would like to be able to send kusto queries to azure data explorer and retrieve requested data in a readable form.
+Additionally it would be nice to be able to provide more than one ADX url and switch it if necessary. The authentication should be done using Azure Entra ID.
