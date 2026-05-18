@@ -1,0 +1,102 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # required to create and upload GitHub Releases
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            script: build:mac:universal
+            artifact_glob: dist/*.dmg
+            label: macOS (Intel + Apple Silicon universal)
+
+          - os: windows-latest
+            script: build:win
+            artifact_glob: dist/*.exe
+
+          - os: ubuntu-latest
+            script: build:linux
+            artifact_glob: dist/*.AppImage
+
+    runs-on: ${{ matrix.os }}
+    name: Build (${{ matrix.os }})
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Linux only — electron-builder needs these libraries for AppImage
+      - name: Install Linux build dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            libarchive-tools \
+            rpm \
+            fakeroot \
+            libopenjp2-tools
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build — ${{ matrix.os }}
+        run: npm run ${{ matrix.script }}
+        env:
+          # Pass GitHub token so electron-builder can publish if configured
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS code signing — set these repository secrets if you have a cert
+          # CSC_LINK:          ${{ secrets.MAC_CERTS }}
+          # CSC_KEY_PASSWORD:  ${{ secrets.MAC_CERTS_PASSWORD }}
+          # Windows code signing — set these repository secrets if you have a cert
+          # CSC_LINK:          ${{ secrets.WIN_CERTS }}
+          # CSC_KEY_PASSWORD:  ${{ secrets.WIN_CERTS_PASSWORD }}
+
+      # Collect built files so the release step can reference them
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kustodesk-${{ matrix.os }}
+          path: ${{ matrix.artifact_glob }}
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: List collected assets
+        run: ls -lh release-assets/
+
+      - name: Create GitHub Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Kustodesk ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+          files: release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
