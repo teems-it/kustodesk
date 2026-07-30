@@ -59,6 +59,8 @@ jobs:
         env:
           # Pass GitHub token so electron-builder can publish if configured
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Force ad-hoc signing on macOS even in a CI environment
+          CSC_IDENTITY_AUTO_DISCOVERY: false
           # macOS code signing — set these repository secrets if you have a cert
           # CSC_LINK:          ${{ secrets.MAC_CERTS }}
           # CSC_KEY_PASSWORD:  ${{ secrets.MAC_CERTS_PASSWORD }}
