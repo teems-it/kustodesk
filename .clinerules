@@ -1,0 +1,38 @@
+# PCS (Progress Context System) Integration
+
+This project uses a Progress Context System stored in `.ai/`. The AI assistant should be aware of and use these context files.
+
+## Context Files Location
+- Current state: `.ai/context/current-state.md`
+- Tasks: `.ai/context/tasks.md`
+- Decisions: `.ai/context/decisions.md`
+- Progress log: `.ai/context/progress-log.md`
+- Specs: `.ai/specs/`
+- Prompts: `.ai/prompts/`
+
+## Workflow Commands
+
+When the user says one of the following phrases, read and execute the corresponding prompt file:
+
+### "load context" or "load-context"
+Read and execute the instructions in `.ai/prompts/load-context.md`
+
+### "continue task" or "continue-task"
+Read and execute the instructions in `.ai/prompts/continue-task.md`
+
+### "save progress" or "save-progress"
+Read and execute the instructions in `.ai/prompts/save-progress.md`
+
+### "validate context" or "validate-context"
+Read and execute the instructions in `.ai/prompts/validate-consistency.md`
+
+### "spec to implementation" or "spec-to-implementation"
+Read and execute the instructions in `.ai/prompts/spec-to-implementation.md`
+
+## Rules
+- Always check `.ai/context/current-state.md` before starting work on a feature
+- Append-only to `.ai/context/decisions.md` — never rewrite existing entries
+- Only ONE task "In Progress" at a time in `.ai/context/tasks.md`
+- Write detailed commit messages (subject + body with bullets) — they are the primary source of truth for `/save-progress`
+- History goes to `progress-log.md`, not `current-state.md`
+- PCS files are committed to version control
