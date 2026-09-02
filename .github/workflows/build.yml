@@ -1,0 +1,95 @@
+name: Build & Test
+
+# PR/push verification — build and test only. Releases are handled by
+# release.yml ("Build & Release", tag-triggered). Keep the two workflows separate.
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (unit + integration + e2e)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit + integration tests
+        run: npm test
+
+      # Electron needs a display — xvfb provides a virtual one
+      - name: E2E smoke test (xvfb)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y xvfb
+          xvfb-run -a npm run test:e2e
+
+  build:
+    name: Build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Linux only — electron-builder needs these libraries for AppImage
+      - name: Install Linux build dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            libarchive-tools \
+            rpm \
+            fakeroot \
+            libopenjp2-tools
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build — ${{ matrix.os }}
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then npm run build:mac;
+          elif [ "$RUNNER_OS" = "Windows" ]; then npm run build:win;
+          else npm run build:linux; fi
+        shell: bash
+        env:
+          # Force ad-hoc signing on macOS even in a CI environment
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      # Debugging aid only — release artifacts come from release.yml
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kustodesk-build-${{ matrix.os }}
+          path: |
+            dist/*.dmg
+            dist/*.exe
+            dist/*.AppImage
+          if-no-files-found: error
+          retention-days: 7

@@ -8,7 +8,7 @@
 ## Active Feature
 
 <!-- Name of the feature currently being worked on, or "None" -->
-_None — project just initialized._
+_None — 0002 (Automated test suite) completed._
 
 ## Status
 
@@ -16,22 +16,25 @@ _None — project just initialized._
 
 | Area | Status | Notes |
 |---|---|---|
-| _Backend_ | _Not started_ | — |
-| _Frontend_ | _Not started_ | — |
-| _Tests_ | _Not started_ | — |
-| _Docs_ | _Not started_ | — |
+| _Backend_ | First version implemented. | `main.js` now a thin composition root; IPC handlers in `ipc-handlers.js`, CSV in `csv.js` |
+| _Frontend_ | First version implemented. | — |
+| _Tests_ | 49 unit+integration tests + 1 E2E smoke, all green. | Vitest; `npm test` / `npm run test:e2e`; CI in `build.yml` |
+| _CI_ | "Build & Test" workflow added (`build.yml`); "Build & Release" unchanged. | Runs on push to `main` + PRs |
+| _Docs_ | README dev/testing section + macOS Gatekeeper note. | — |
 
 ## Known Issues
 
 <!-- List any known bugs, blockers, or technical debt. Remove this section if empty. -->
 
-- _None yet._
+- There is no "intelli sense" features supporting kusto syntax
+- MacOS recognizes the **packaged** app as not trusted software and denies the installation (dev binary is fixed by the postinstall ad-hoc re-sign; packaged app may need equivalent treatment)
+- Renderer (`src/renderer/app.js`) has no automated tests (DOM-heavy, no bundler — candidate follow-up)
 
 ## Next Step
 
 <!-- The single next action to take. Must be concrete and actionable. -->
 
-_Initialize the project by running `/load-context`, then start work on your first feature._
+_Start 0003 — Kusto IntelliSense: create `.ai/specs/0003_kusto-intellisense.md` following the feature template._
 
 ---
 

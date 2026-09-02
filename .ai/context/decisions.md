@@ -25,6 +25,39 @@ Each entry follows this format:
 
 <!-- Add new decisions below, newest first. -->
 
+## 2026-09-02 — Re-sign Electron dev binary ad-hoc to fix revoked-notarization Gatekeeper block
+
+**Context:** After `npm install`, macOS flagged the freshly downloaded `node_modules/electron/dist/Electron.app` as "dangerous / will damage your computer" and blocked (then deleted) the app on launch. System log showed `Notarization daemon found revoked hash` — Apple revoked the notarization hash of some Electron 31 builds. Removing the `com.apple.quarantine` attribute did NOT help because revocation is checked online regardless of quarantine.
+
+**Decision:** Strip the revoked Apple signature by re-signing the bundle ad-hoc (`codesign --force --deep --sign -`) via a `postinstall` script (`scripts/fix-electron-macos-signature.js`) that no-ops on non-macOS. Locally spawned ad-hoc apps skip the notarization check entirely.
+
+**Consequences:** Dev runs and the Playwright E2E smoke test launch cleanly. A fresh `npm ci`/`npm install` is self-healing. If Apple's revocation list changes the packaged/release app behavior, packaging may need an equivalent treatment (related known issue: "MacOS recognizes the app as not trusted software").
+
+## 2026-09-02 — Separate "Build & Test" CI workflow in `build.yml`
+
+**Context:** The only workflow was `release.yml` ("Build & Test"), tag-triggered; packaging breakage was only caught at release time.
+
+**Decision:** New `.github/workflows/build.yml` ("Build & Test"): triggers on push to `main` and PRs; `test` job (ubuntu: `npm test` + `xvfb-run npm run test:e2e`) plus a 3-OS build matrix mirroring `release.yml`. Artifacts are debugging aids only; no release publishing. File named `build.yml` per owner preference.
+
+**Consequences:** Fast pre-release feedback; release workflow untouched. E2E in CI only runs on Linux (xvfb) — macOS Gatekeeper quirks don't affect CI.
+
+## 2026-09-02 — Testability refactors: injectable Store, extracted `csv.js` and `ipc-handlers.js`
+
+**Context:** All IPC handlers and CSV serialization lived inline in `main.js`, tightly coupled to Electron — untestable without launching the app. `Store` hard-coded `app.getPath('userData')`.
+
+**Decision:** `Store` accepts optional `dataDir` (falls back to `app.getPath('userData')`); CSV serialization extracted to pure `src/main/csv.js` (`toCsv`); all IPC handlers moved to `src/main/ipc-handlers.js` as `registerIpcHandlers({ ipcMain, store, kustoManager, dialog, getWindow })` with every Electron touchpoint injected. `main.js` is now a thin composition root (PATH fix, lifecycle, window, one registration call). New `KUSTODESK_DATA_DIR` env var overrides `userData` so E2E runs never touch real app data.
+
+**Consequences:** Unit/integration tests run in plain Node with zero Electron mocks. Behavior is unchanged (CSV null/undefined cells remain *unquoted* empty cells — now pinned by tests). `main.js` no longer needs `dialog`/`shell` imports.
+
+## 2026-09-02 — Vitest as the test runner
+
+**Context:** Needed a runner for a CommonJS Electron codebase with heavy module mocking (azure-kusto-data, child_process/`az` shell-out), working on Node 20 (CI) and 24 (local).
+
+**Decision:** Vitest 3 with `tests/{unit,integration,e2e}` layout; scripts `test`, `test:unit`, `test:integration`, `test:e2e`, `test:watch`. E2E is a separate script since it needs a display.
+
+**Consequences:** Fast (49 tests ≈ 0.4s) and zero-config. Gotcha discovered: `vi.mock` does NOT intercept `require()` calls made inside CJS source modules (the `az` shell-out really ran, and real MSAL requests went out) — `kusto-client` tests therefore patch the real `azure-kusto-data`/`child_process` exports via `createRequire` before importing the module instead of using `vi.mock`.
+
+
 ## 2026-05-18 — Azure CLI auth via direct shell-out, not `@azure/identity`
 
 **Context:** The app must authenticate to ADX exactly the way the user's terminal does. The original plan (`implementation_plan.md`) assumed `@azure/identity` `AzureCliCredential` via `KustoConnectionStringBuilder.withAzLoginIdentity()`, but it misbehaves inside Electron — wrong resource scope, PATH resolution issues, and tenant resolution problems (documented in `kusto-client.js` comments).

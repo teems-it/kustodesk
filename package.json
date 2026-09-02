@@ -6,11 +6,17 @@
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
+    "test": "vitest run tests/unit tests/integration",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "vitest run tests/e2e",
+    "test:watch": "vitest",
     "build": "electron-builder",
     "build:mac": "electron-builder --mac",
     "build:mac:universal": "electron-builder --mac --universal",
     "build:win": "electron-builder --win",
-    "build:linux": "electron-builder --linux"
+    "build:linux": "electron-builder --linux",
+    "postinstall": "node scripts/fix-electron-macos-signature.js"
   },
   "dependencies": {
     "@azure/identity": "^4.4.1",
@@ -19,7 +25,9 @@
   },
   "devDependencies": {
     "electron": "^31.0.0",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "playwright-core": "^1.62.1",
+    "vitest": "^3.2.7"
   },
   "build": {
     "appId": "com.teems-labs.kustodesk",

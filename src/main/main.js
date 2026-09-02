@@ -20,10 +20,11 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
   process.env.PATH = parts.join(':');
 }
 
-const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { KustoClientManager } = require('./kusto-client');
 const { Store } = require('./store');
+const { registerIpcHandlers } = require('./ipc-handlers');
 
 let mainWindow;
 const kustoManager = new KustoClientManager();
@@ -53,99 +54,22 @@ function createWindow() {
   });
 }
 
-// ── Cluster CRUD ────────────────────────────────────────────────────────────
-
-ipcMain.handle('clusters:get-all', () => store.getClusters());
-
-ipcMain.handle('clusters:add', (_, cluster) => store.addCluster(cluster));
-
-ipcMain.handle('clusters:update', (_, cluster) => store.updateCluster(cluster));
-
-ipcMain.handle('clusters:delete', (_, id) => {
-  // Clear cached client for this cluster before deleting
-  const cluster = store.getClusters().find(c => c.id === id);
-  if (cluster) kustoManager.invalidate(cluster.url, cluster.authMethod, cluster.authConfig || {});
-  return store.deleteCluster(id);
-});
-
-// ── Kusto queries ────────────────────────────────────────────────────────────
-
-function makeDeviceCodeCallback(event) {
-  return (message) => event.sender.send('auth:device-code-message', message);
-}
-
-ipcMain.handle('kusto:execute', async (event, { clusterId, url, database, query, authMethod, authConfig }) => {
-  try {
-    const onMsg = makeDeviceCodeCallback(event);
-    const start = Date.now();
-    const result = await kustoManager.execute(url, database, query, authMethod, authConfig, onMsg);
-    result.executionTimeMs = Date.now() - start;
-
-    store.addHistory({ clusterId, database, query, rowCount: result.rowCount, executionTimeMs: result.executionTimeMs });
-    store.touchCluster(clusterId);
-
-    return { success: true, ...result };
-  } catch (err) {
-    return { success: false, error: err.message || String(err) };
+app.whenReady().then(() => {
+  // Tests (E2E) can isolate the data dir via env var instead of touching real userData
+  if (process.env.KUSTODESK_DATA_DIR) {
+    app.setPath('userData', process.env.KUSTODESK_DATA_DIR);
   }
-});
 
-ipcMain.handle('kusto:test-connection', async (event, { url, authMethod, authConfig }) => {
-  try {
-    const onMsg = makeDeviceCodeCallback(event);
-    await kustoManager.testConnection(url, authMethod, authConfig, onMsg);
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err.message || String(err) };
-  }
-});
+  store = new Store();
 
-ipcMain.handle('kusto:get-databases', async (event, { url, authMethod, authConfig }) => {
-  try {
-    const onMsg = makeDeviceCodeCallback(event);
-    const databases = await kustoManager.getDatabases(url, authMethod, authConfig, onMsg);
-    return { success: true, databases };
-  } catch (err) {
-    return { success: false, error: err.message || String(err) };
-  }
-});
-
-// ── History ───────────────────────────────────────────────────────────────────
-
-ipcMain.handle('history:get', (_, clusterId) => store.getHistory(clusterId));
-
-ipcMain.handle('history:clear', (_, clusterId) => store.clearHistory(clusterId));
-
-// ── CSV Export ────────────────────────────────────────────────────────────────
-
-ipcMain.handle('export:csv', async (_, { columns, rows }) => {
-  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
-    title: 'Export to CSV',
-    defaultPath: `adx-results-${Date.now()}.csv`,
-    filters: [{ name: 'CSV', extensions: ['csv'] }],
+  registerIpcHandlers({
+    ipcMain,
+    store,
+    kustoManager,
+    dialog: require('electron').dialog,
+    getWindow: () => mainWindow,
   });
 
-  if (canceled || !filePath) return { success: false };
-
-  const fs = require('fs');
-  const header = columns.map((c) => `"${c.name}"`).join(',');
-  const rowLines = rows.map((row) =>
-    columns.map((c) => {
-      const val = row[c.name];
-      if (val === null || val === undefined) return '';
-      const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
-      return `"${str.replace(/"/g, '""')}"`;
-    }).join(',')
-  );
-  const csv = [header, ...rowLines].join('\n');
-  fs.writeFileSync(filePath, csv, 'utf8');
-  return { success: true, filePath };
-});
-
-// ── App lifecycle ─────────────────────────────────────────────────────────────
-
-app.whenReady().then(() => {
-  store = new Store();
   createWindow();
 
   app.on('activate', () => {
@@ -156,3 +80,4 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+

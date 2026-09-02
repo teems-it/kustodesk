@@ -51,6 +51,25 @@ npm install
 npm start
 ```
 
+> **macOS note:** If macOS flags the dev `Electron` binary as "dangerous / will damage your computer", it is due to Apple revoking the notarization hash of some Electron 31 builds — not a real threat. `npm install` re-signs the binary ad-hoc automatically (via `postinstall`). If you ever see the warning again, run:
+> ```bash
+> codesign --force --deep --sign - node_modules/electron/dist/Electron.app
+> ```
+
+---
+
+## Development & Testing
+
+```bash
+npm test            # unit + integration tests (Vitest — runs in plain Node, no Electron needed)
+npm run test:unit   # unit tests only (store, kusto-client, CSV)
+npm run test:integration  # IPC handler integration tests
+npm run test:e2e    # launches the real app via Playwright against an isolated data dir
+npm run test:watch  # watch mode
+```
+
+Tests live in `tests/unit`, `tests/integration`, and `tests/e2e`. CI runs all of them (plus a 3-OS packaging build) on every push/PR via `.github/workflows/build.yml` ("Build & Test"); releases remain in `release.yml` ("Build & Release", tag-triggered). The E2E smoke test isolates its data dir via the `KUSTODESK_DATA_DIR` env var, so it never touches your real app data.
+
 ---
 
 ## Authentication

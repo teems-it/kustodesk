@@ -7,8 +7,10 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
 class Store {
-  constructor() {
-    this.dataDir = app.getPath('userData');
+  // `dataDir` is optional so tests can use a temp directory without Electron;
+  // defaults to Electron's per-user data path when running in the app.
+  constructor(dataDir) {
+    this.dataDir = dataDir ?? app.getPath('userData');
     this.clustersFile = path.join(this.dataDir, 'clusters.json');
     this.historyFile = path.join(this.dataDir, 'history.json');
     this._ensureFiles();
