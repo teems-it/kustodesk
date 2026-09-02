@@ -24,3 +24,19 @@
 **Decisions:** See `decisions.md` entries dated 2026-09-02 (Vitest; testability refactors; separate `build.yml` workflow; Electron ad-hoc re-sign).
 
 **Next:** 0003 — Kusto IntelliSense (create spec).
+
+## 2026-09-02 — Session Summary
+
+**Commits:** `45ea0da`, `b14475b`, `f821d89`
+
+**What was done:**
+- `45ea0da` — `.clinerules` added (PCS integration instructions)
+- `b14475b` — 0002 Automated test suite: Vitest 3 + 49 unit/integration tests + Playwright E2E smoke; testability refactors (`Store(dataDir)`, `src/main/csv.js`, `src/main/ipc-handlers.js`); `.github/workflows/build.yml` ("Build & Test"); postinstall Electron ad-hoc re-sign fixing Apple's revoked-notarization Gatekeeper block; README + spec + decisions updated
+- `f821d89` — progress log entry for 0002
+
+**Status after session:**
+- 0002 DONE. 49 unit+integration tests + 1 E2E smoke all green; CI "Build & Test" active on push/PR; `release.yml` untouched. Local commits not yet pushed.
+
+**Next:**
+- Push to `main` to trigger the first "Build & Test" run, then start 0003 — Kusto IntelliSense (create `.ai/specs/0003_kusto-intellisense.md`).
+
