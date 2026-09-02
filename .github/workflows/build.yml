@@ -73,10 +73,13 @@ jobs:
         run: npm ci
 
       - name: Build — ${{ matrix.os }}
+        # --publish never: this job must not publish releases (that's release.yml's
+        # job). Without it, electron-builder detects CI and demands GH_TOKEN to
+        # check for a draft release, failing the build.
         run: |
-          if [ "$RUNNER_OS" = "macOS" ]; then npm run build:mac;
-          elif [ "$RUNNER_OS" = "Windows" ]; then npm run build:win;
-          else npm run build:linux; fi
+          if [ "$RUNNER_OS" = "macOS" ]; then npx electron-builder --mac --publish never;
+          elif [ "$RUNNER_OS" = "Windows" ]; then npx electron-builder --win --publish never;
+          else npx electron-builder --linux --publish never; fi
         shell: bash
         env:
           # Force ad-hoc signing on macOS even in a CI environment
