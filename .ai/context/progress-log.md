@@ -8,6 +8,26 @@
 
 <!-- Add new session entries below, newest first. -->
 
+## 2026-09-03 — 0003 bugfix #2: MVs now listed via schema-JSON fallback (commit `ad8826b`)
+
+**Task:** 0003 follow-up — "materialized views are not displayed, always 0, but they exist in a few databases" — **FIXED**
+
+**Diagnosis (read-only probes against the real cluster):**
+- User was right: every database contains MVs (`MicroWeatherView`, `GeoJsonView` + 2 more, etc.) — confirmed via `.show database schema as json` (HTTP 200, full `MaterializedViews` map)
+- `.show materialized views` fails cluster-wide with a **parser-level** error: `Syntax error: SYN0002: A recognition error occurred. [1:6]` — the engine doesn't recognize the command, despite the MVs existing (earlier "no MV support" theory corrected)
+- The previous fix's graceful degradation therefore always produced an empty MV list
+
+**What was done:**
+- New `_showMaterializedViewsViaSchema()`: parses `.show database schema as json` → `Object.keys(Databases[db].MaterializedViews)`
+- `getResources`: on MV-command failure, tries the schema fallback; only if both fail does it degrade to an empty list (single `console.warn` naming both errors). Healthy clusters never trigger the fallback (asserted by test)
+- +1 unit test for the fallback path; happy-path test extended to assert no schema call; **64 tests, all green**
+- decisions.md entry (supersedes the previous degradation decision); spec errata corrected
+- Side benefit confirmed in the user's `npm start` logs: `describeKustoError` now surfaces the real Kusto error text in the main-process warns
+
+**Recommendation for the user:** the engine not recognizing `.show materialized views` (SYN0002) while MVs exist looks like an engine-side anomaly — worth an Azure support ticket.
+
+**Next:** 0004 — Kusto IntelliSense (create spec; can reuse the resource list from 0003).
+
 ## 2026-09-03 — 0003 bugfix: clusters without MV support (commit `9f2e9e5`)
 
 **Task:** 0003 follow-up — resource listing returned 400 "Request failed with status code 400" on the ANOVEDA PROD cluster — **FIXED**

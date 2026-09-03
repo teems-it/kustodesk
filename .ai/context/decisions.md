@@ -25,6 +25,14 @@ Each entry follows this format:
 
 <!-- Add new decisions below, newest first. -->
 
+## 2026-09-03 — MV listing falls back to `.show database schema as json`
+
+**Context:** On the ANOVEDA PROD cluster (`mbdevanoprdeuwkc.westeurope.kusto.windows.net`) every database contains materialized views (e.g. `MicroWeatherView`, `GeoJsonView`), yet `.show materialized views` fails cluster-wide with a parser-level `Syntax error: SYN0002: A recognition error occurred. [1:6]` — the engine does not recognize the command — while `.show database schema as json` returns 200 carrying the full `MaterializedViews` map. The previous graceful degradation therefore always showed an empty MV list. (The earlier "engine without MV support" diagnosis was wrong.)
+
+**Decision:** When `.show materialized views` fails, `getResources` retries via `.show database schema as json` and extracts `Object.keys(Databases[db].MaterializedViews)`. Only if that fallback also fails does it degrade to an empty list, with a `console.warn` naming both errors. Healthy clusters never hit the fallback — no schema call is made.
+
+**Consequences:** MV names now display on clusters that don't recognize the dedicated command. Cost: a heavier schema-JSON fetch (full table/column schema) is made only on clusters where the dedicated command is broken. Supersedes the empty-list-only degradation of the previous decision.
+
 ## 2026-09-03 — Tolerate `.show materialized views` failure in `getResources`; surface Kusto error bodies
 
 **Context:** On the ANOVEDA PROD cluster (`mbdevanoprdeuwkc.westeurope.kusto.windows.net`), `.show materialized views` returns 400 `General_BadRequest` for every database (engine without MV support) — and since `getResources` awaited both commands sequentially, the whole resource fetch failed with the unhelpful "Request failed with status code 400". Additionally, axios error messages hide Kusto's actual error description, which is carried in the HTTP response body.
