@@ -8,7 +8,7 @@
 ## Active Feature
 
 <!-- Name of the feature currently being worked on, or "None" -->
-_None — 0002 (Automated test suite) completed._
+_Active feature: none — 0003 (Resource listing) completed. Next: 0004 (Kusto IntelliSense) spec creation._
 
 ## Status
 
@@ -16,11 +16,11 @@ _None — 0002 (Automated test suite) completed._
 
 | Area | Status | Notes |
 |---|---|---|
-| _Backend_ | First version implemented. | `main.js` now a thin composition root; IPC handlers in `ipc-handlers.js`, CSV in `csv.js` |
-| _Frontend_ | First version implemented. | — |
-| _Tests_ | 49 unit+integration tests + 1 E2E smoke, all green. | Vitest; `npm test` / `npm run test:e2e`; CI in `build.yml` |
+| _Backend_ | First version implemented. | `main.js` thin composition root; IPC in `ipc-handlers.js`; `getResources()` in `kusto-client.js` |
+| _Frontend_ | First version implemented. | Resources sidebar (tables + materialized views, context menu) added in 0003 |
+| _Tests_ | 57 unit+integration tests + 1 E2E smoke, all green. | Vitest; `npm test` / `npm run test:e2e`; CI in `build.yml` |
 | _CI_ | "Build & Test" workflow added (`build.yml`); "Build & Release" unchanged. | Runs on push to `main` + PRs |
-| _Docs_ | README dev/testing section + macOS Gatekeeper note. | — |
+| _Docs_ | README dev/testing section + macOS Gatekeeper note + resource sidebar feature bullet. | — |
 
 ## Known Issues
 
@@ -34,7 +34,11 @@ _None — 0002 (Automated test suite) completed._
 
 <!-- The single next action to take. Must be concrete and actionable. -->
 
-_Start 0003 — Resource listing (spec ready: `.ai/specs/0003_resource-listing.md`). 0004 — Kusto IntelliSense follows._
+_Start 0004 — Kusto IntelliSense: create the spec (`.ai/specs/0004_kusto-intellisense.md`). The resource list from 0003 can be reused for table/column completion._
+
+### Manual verification pending (0003 DoD)
+
+- Right-click "Query 100 rows" inserts a runnable `["Name"] | take 100` query against a real cluster (spec test scenario 3) — verify with `npm start` before tagging a release.
 
 ---
 

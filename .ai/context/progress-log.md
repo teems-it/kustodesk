@@ -8,6 +8,22 @@
 
 <!-- Add new session entries below, newest first. -->
 
+## 2026-09-03 — 0003 Resource listing (commit `1224095`)
+
+**Task:** 0003 — Resource listing (spec `.ai/specs/0003_resource-listing.md`) — **DONE**
+
+**What was done:**
+- `KustoClientManager.getResources(url, database, ...)`: database-scoped `.show tables` (map `TableName`) and `.show materialized views` (map `Name`) via `executeMgmt`, per-cluster client cache reuse, empty-database short-circuit (no client, no mgmt call)
+- New `kusto:get-resources` IPC channel (success/error envelope, device-code relay) and `adxAPI.getResources()` in preload
+- Renderer: "Resources" sidebar section between Clusters and History, with refresh button; tree = active database root → collapsible **Tables** / **Materialized Views** groups; loading / error / empty states; stale-response guard via monotonic request id; fetch triggers on cluster select (via `loadDatabases`), `db-select` change, and refresh click; cluster delete resets the tree
+- Right-click custom DOM context menu (viewport-clamped, Escape/blur/click-away dismissal) → "Query 100 rows" inserts `["Name"] | take 100` at the cursor via `editor.replaceSelection` (bracket-quoted, quotes/backslashes escaped)
+- Tests: +5 unit (mgmt commands + row mapping, empty-db short-circuit, cache reuse, device-code passthrough, error propagation) and +3 integration (success/error envelope, device-code relay) — **57 total, all green** (`npm test`)
+- README features list updated; spec 0003 → DONE; 4 new entries in `decisions.md`
+
+**Decisions:** See `decisions.md` entries dated 2026-09-03 (dedicated mgmt commands; combined `kusto:get-resources` channel; custom DOM context menu; always bracket-quoted insert).
+
+**Next:** 0004 — Kusto IntelliSense (create spec; can reuse the resource list from 0003).
+
 ## 2026-09-02 — 0002 Automated test suite (commit `b14475b`)
 
 **Task:** 0002 — Automated test suite (spec `.ai/specs/0002_test-suite.md`) — **DONE**
