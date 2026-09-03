@@ -299,7 +299,12 @@ describe('getResources', () => {
         });
       }
       if (cmd === '.show database schema as json') {
-        return { primaryResults: [{ rows: () => [{ toJSON: () => ({ Schema: SCHEMA_JSON }) }] }] };
+        // rows() is a generator on real KustoResultTables — mirror that here
+        return {
+          primaryResults: [{
+            rows: function* () { yield { toJSON: () => ({ Schema: SCHEMA_JSON }) }; },
+          }],
+        };
       }
       throw new Error(`unexpected command: ${cmd}`);
     });
@@ -311,6 +316,27 @@ describe('getResources', () => {
     expect(res).toEqual({ tables: ['T1'], materializedViews: ['MV1', 'MV2'] });
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
+  });
+
+  it('regression: extracts MVs through the REAL SDK KustoResultTable (generator rows())', async () => {
+    // Regresses a bug where the fallback indexed rows()[0], which is undefined on
+    // the real KustoResultTable generator and silently produced an empty MV list.
+    const { KustoResponseDataSetV1 } = require('azure-kusto-data/dist-esm/src/response.js');
+    const response = new KustoResponseDataSetV1({
+      Tables: [{
+        TableName: 'Table_0',
+        Columns: [{ ColumnName: 'DatabaseSchema', DataType: 'String' }],
+        Rows: [[JSON.stringify({ Databases: { db1: { Name: 'db1', MaterializedViews: { MV1: {}, MV2: {} } } } })]],
+      }],
+    });
+
+    const mgr2 = new KustoClientManager();
+    const result = await mgr2._showMaterializedViewsViaSchema(
+      { executeMgmt: async () => response },
+      'db1'
+    );
+
+    expect(result).toEqual(['MV1', 'MV2']);
   });
 });
 

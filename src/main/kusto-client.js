@@ -133,8 +133,13 @@ class KustoClientManager {
   // JSON carries the same MaterializedViews map and is known to work there.
   async _showMaterializedViewsViaSchema(client, database) {
     const results = await client.executeMgmt(database, '.show database schema as json');
-    const row = results.primaryResults[0].rows()[0] && results.primaryResults[0].rows()[0].toJSON();
-    const schemaJson = row ? Object.values(row)[0] : undefined;
+    // rows() is a GENERATOR on real KustoResultTables (models.js `*rows()`) —
+    // it must be iterated, not indexed (rows()[0] is undefined on generators).
+    let schemaJson;
+    for (const row of results.primaryResults[0].rows()) {
+      schemaJson = Object.values(row.toJSON())[0];
+      break; // single-row result
+    }
     const schema = typeof schemaJson === 'string' ? JSON.parse(schemaJson) : schemaJson;
     const dbNode =
       (schema && schema.Databases && (schema.Databases[database] || Object.values(schema.Databases)[0])) || {};
