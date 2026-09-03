@@ -8,7 +8,7 @@
 ## Active Feature
 
 <!-- Name of the feature currently being worked on, or "None" -->
-_Active feature: none — 0003 (Resource listing) completed. Next: 0004 (Kusto IntelliSense) spec creation._
+_Active feature: 0004 — Kusto IntelliSense (spec creation is the first step). 0003 (Resource listing) completed with all reported bugs fixed._
 
 ## Status
 
@@ -29,6 +29,7 @@ _Active feature: none — 0003 (Resource listing) completed. Next: 0004 (Kusto I
 - There is no "intelli sense" features supporting kusto syntax
 - MacOS recognizes the **packaged** app as not trusted software and denies the installation (dev binary is fixed by the postinstall ad-hoc re-sign; packaged app may need equivalent treatment)
 - Renderer (`src/renderer/app.js`) has no automated tests (DOM-heavy, no bundler — candidate follow-up)
+- ANOVEDA PROD cluster rejects `.show materialized views` with a parser-level SYN0002 error although MVs exist (confirmed via schema JSON); worked around in `getResources` via the schema-JSON fallback — an Azure support ticket is recommended
 
 ## Next Step
 

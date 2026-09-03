@@ -8,6 +8,25 @@
 
 <!-- Add new session entries below, newest first. -->
 
+## 2026-09-03 — Session Summary
+
+**Commits:** `94042db`, `3390991`, `1224095`, `a14b003`, `9f2e9e5`, `25f7348`, `ad8826b`, `72f97ab`, `f9b63f6`, `66c589c`
+
+**What was done:**
+- `94042db` — 0003 spec written (DRAFT → committed); IntelliSense renumbered to 0004
+- `3390991` — lockfile `hasInstallScript` flag from the postinstall hook
+- `1224095` — **0003 Resource listing feature**: `KustoClientManager.getResources()` (`.show tables` / `.show materialized views` via `executeMgmt`, client-cache reuse, empty-db short-circuit); `kusto:get-resources` IPC + `adxAPI.getResources()` preload; Resources sidebar with collapsible Tables / Materialized Views groups, loading/error/empty states, stale-response guard, refresh button; right-click context menu inserting `["Name"] | take 100` at the cursor; 8 new tests (57 total), README, spec → DONE, 4 decisions
+- `9f2e9e5` — **bugfix #1**: clusters rejecting `.show materialized views` (400) no longer fail the whole fetch — `Promise.allSettled` with MV-degradation; new `describeKustoError()` surfaces Kusto error bodies in all `kusto:*` envelopes (63 tests)
+- `ad8826b` — **bugfix #2**: MV listing falls back to `.show database schema as json` (`Databases[db].MaterializedViews`) because the ANOVEDA PROD cluster rejects the dedicated command with a parser-level SYN0002 error although MVs exist in every database (64 tests)
+- `f9b63f6` — **bugfix #3**: schema fallback indexed `rows()[0]`, which is `undefined` on the real SDK generator (`*rows()`) — now iterated with `for..of`; generator-based mocks + regression test driving the real `KustoResponseDataSetV1` deserializer; verified end-to-end offline against the real cluster payload (`["MaterializedView"]`) — (65 tests)
+- PCS commits (`a14b003`, `25f7348`, `72f97ab`, `66c589c`) keep context/spec/decisions/progress-log in sync
+
+**Status after session:**
+- 0003 DONE including all three reported bugs fixed. 65 unit+integration tests + 1 E2E smoke all green; working tree clean; 12 commits ahead of `origin/main`, not yet pushed.
+
+**Next:**
+- Manual check in the app that MVs render and right-click works, push to `main` to run Build & Test CI, then start 0004 — Kusto IntelliSense (create `.ai/specs/0004_kusto-intellisense.md`); consider an Azure support ticket for the cluster's SYN0002 anomaly.
+
 ## 2026-09-03 — 0003 bugfix #3: generator rows() indexing bug in the schema fallback (commit `f9b63f6`)
 
 **Task:** 0003 follow-up — "still only tables, MV count always 0" after bugfix #2 — **FIXED**
@@ -20,7 +39,7 @@
 **What was done:**
 - `_showMaterializedViewsViaSchema` now iterates `rows()` with `for..of` (works on generators and arrays) and takes the first row
 - Fallback-test mock switched to a **generator-based** `rows()`; new regression test drives the **real** `KustoResponseDataSetV1` deserializer over a realistic payload — **65 tests, all green**
-- End-to-end verification (offline, no cluster connection needed): real deserializer + real saved response through the fixed helper → `["TrafficSignsView"]` ✓
+- End-to-end verification (offline, no cluster connection needed): real deserializer + real saved response through the fixed helper → `["MaterializedView"]` ✓
 
 **Lesson:** any code that touches SDK result tables must iterate `rows()`; array-style mocks hide generator behavior. Consider asserting `rows()` fidelity in future mocks.
 

@@ -9,14 +9,13 @@
 
 <!-- The single task currently being worked on. Only ONE at a time. -->
 
-- _None_
+- **0004 — Kusto IntelliSense** (spec: to be created at `.ai/specs/0004_kusto-intellisense.md`) — next step: create the spec; the 0003 resource list can be reused for table/column completion.
 
 ## Todo
 
 <!-- Upcoming tasks, ordered by priority. -->
 
-- **0004 — Kusto IntelliSense** (spec: to be created; renumbered from 0003)
-  Kusto/KQL-aware code completion in the query editor (replacing the generic SQL-mode highlighting-only setup from v1). Can reuse the resource list from 0003 for table/column completion.
+- _Empty_
 
 ## Done
 
