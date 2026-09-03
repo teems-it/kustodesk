@@ -1,6 +1,6 @@
 {
   "name": "kustodesk",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Kustodesk — Azure Data Explorer Desktop Client",
   "license": "GPL-3.0-only",
   "main": "src/main/main.js",
