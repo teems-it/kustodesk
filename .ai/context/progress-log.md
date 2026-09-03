@@ -8,6 +8,24 @@
 
 <!-- Add new session entries below, newest first. -->
 
+## 2026-09-03 — 0003 bugfix: clusters without MV support (commit `9f2e9e5`)
+
+**Task:** 0003 follow-up — resource listing returned 400 "Request failed with status code 400" on the ANOVEDA PROD cluster — **FIXED**
+
+**Diagnosis (reproduced via read-only curl + az token against the real cluster):**
+- `.show tables` → 200; `.show materialized views` → 400 `General_BadRequest: Request is invalid and cannot be executed.` on **every** database (engine without MV support, cluster-wide)
+- `getResources` awaited both mgmt commands sequentially → the 400 failed the entire resource fetch, discarding the valid tables list
+- The toast message was unhelpful because axios error messages hide Kusto's response-body error description
+
+**What was done:**
+- `getResources` fetches both lists independently via `Promise.allSettled`: `.show tables` failure stays fatal; MV-command failure degrades to an empty list with a `console.warn` in main
+- New `describeKustoError(err)` (exported from `kusto-client.js`) extracts the Kusto error body (plain string or `{ error: { "@message" } }`); all `kusto:*` IPC error envelopes now use it
+- +6 tests (5 unit, 1 integration) pinning the degradation, enriched messages, and error-body extraction — **63 total, all green**
+- Spec 0003 Notes gained an errata entry; decision logged in `decisions.md`
+- Note: live node-to-cluster verification isn't possible from the dev sandbox (corporate TLS interception breaks node's CA bundle; curl works). Verify with `npm start` against the real cluster.
+
+**Next:** 0004 — Kusto IntelliSense (create spec; can reuse the resource list from 0003).
+
 ## 2026-09-03 — 0003 Resource listing (commit `1224095`)
 
 **Task:** 0003 — Resource listing (spec `.ai/specs/0003_resource-listing.md`) — **DONE**
