@@ -8,6 +8,24 @@
 
 <!-- Add new session entries below, newest first. -->
 
+## 2026-09-03 — 0003 bugfix #3: generator rows() indexing bug in the schema fallback (commit `f9b63f6`)
+
+**Task:** 0003 follow-up — "still only tables, MV count always 0" after bugfix #2 — **FIXED**
+
+**Diagnosis (proven with the real SDK deserializer + the real cluster response payload):**
+- `KustoResultTable.rows()` in azure-kusto-data is a **generator function** (`models.js *rows()`); generators are not indexable, so the fallback's `rows()[0]` was `undefined` → `_showMaterializedViewsViaSchema` silently returned `[]` (no throw, never reached the warn branch)
+- Unit tests missed it because the mocks return plain **arrays** (indexable) — mock-fidelity gap
+- Proof: `KustoResponseDataSetV1` over the actual `.show database schema as json` response → `rows() is generator: true`, `rows()[0] === undefined`, buggy helper → `[]`
+
+**What was done:**
+- `_showMaterializedViewsViaSchema` now iterates `rows()` with `for..of` (works on generators and arrays) and takes the first row
+- Fallback-test mock switched to a **generator-based** `rows()`; new regression test drives the **real** `KustoResponseDataSetV1` deserializer over a realistic payload — **65 tests, all green**
+- End-to-end verification (offline, no cluster connection needed): real deserializer + real saved response through the fixed helper → `["TrafficSignsView"]` ✓
+
+**Lesson:** any code that touches SDK result tables must iterate `rows()`; array-style mocks hide generator behavior. Consider asserting `rows()` fidelity in future mocks.
+
+**Next:** 0004 — Kusto IntelliSense (create spec; can reuse the resource list from 0003).
+
 ## 2026-09-03 — 0003 bugfix #2: MVs now listed via schema-JSON fallback (commit `ad8826b`)
 
 **Task:** 0003 follow-up — "materialized views are not displayed, always 0, but they exist in a few databases" — **FIXED**

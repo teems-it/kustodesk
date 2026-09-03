@@ -18,7 +18,7 @@ _Active feature: none — 0003 (Resource listing) completed. Next: 0004 (Kusto I
 |---|---|---|
 | _Backend_ | First version implemented. | `main.js` thin composition root; IPC in `ipc-handlers.js`; `getResources()` in `kusto-client.js` |
 | _Frontend_ | First version implemented. | Resources sidebar (tables + materialized views, context menu) added in 0003 |
-| _Tests_ | 64 unit+integration tests + 1 E2E smoke, all green. | Vitest; `npm test` / `npm run test:e2e`; CI in `build.yml` |
+| _Tests_ | 65 unit+integration tests + 1 E2E smoke, all green. | Vitest; `npm test` / `npm run test:e2e`; CI in `build.yml` |
 | _CI_ | "Build & Test" workflow added (`build.yml`); "Build & Release" unchanged. | Runs on push to `main` + PRs |
 | _Docs_ | README dev/testing section + macOS Gatekeeper note + resource sidebar feature bullet. | — |
 
