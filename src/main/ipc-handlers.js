@@ -61,6 +61,16 @@ function registerIpcHandlers({ ipcMain, store, kustoManager, dialog, getWindow }
     }
   });
 
+  ipcMain.handle('kusto:get-resources', async (event, { url, database, authMethod, authConfig }) => {
+    try {
+      const onMsg = makeDeviceCodeCallback(event);
+      const resources = await kustoManager.getResources(url, database, authMethod, authConfig, onMsg);
+      return { success: true, resources };
+    } catch (err) {
+      return { success: false, error: err.message || String(err) };
+    }
+  });
+
   // ── History ───────────────────────────────────────────────────────────────────
 
   ipcMain.handle('history:get', (_, clusterId) => store.getHistory(clusterId));

@@ -51,6 +51,22 @@
       </div>
     </div>
 
+    <!-- Resources section -->
+    <div class="sidebar-section" style="flex: 0 0 auto; max-height: 45%;">
+      <div class="sidebar-header">
+        <span>Resources</span>
+        <button class="btn btn-icon" id="btn-refresh-resources" title="Refresh resources" style="padding:2px 4px;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+        </button>
+      </div>
+      <div class="sidebar-list" id="resource-list">
+        <div class="text-muted" style="padding: 8px; font-size:11px;">— select database —</div>
+      </div>
+    </div>
+
     <!-- History section -->
     <div class="sidebar-section">
       <div class="sidebar-header">
@@ -280,6 +296,11 @@
       <button class="btn btn-primary" id="btn-modal-save">Save</button>
     </div>
   </div>
+</div>
+
+<!-- ── Resource context menu ──────────────────────────────────────────────── -->
+<div id="context-menu" class="context-menu hidden">
+  <div class="context-menu-item" data-action="query-100">Query 100 rows</div>
 </div>
 
 <!-- ── Toast ──────────────────────────────────────────────────────────────── -->

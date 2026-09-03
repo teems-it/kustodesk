@@ -6,6 +6,8 @@ const state = {
   activeCluster: null,
   databases: [],
   activeDatabase: '',
+  resources: null,
+  resourcesExpanded: { tables: true, views: true },
   results: null,
   activeTab: 'table',
   editingClusterId: null,
@@ -19,12 +21,15 @@ const $ = (id) => document.getElementById(id);
 
 const dom = {
   clusterList:    $('cluster-list'),
+  resourceList:   $('resource-list'),
+  contextMenu:    $('context-menu'),
   historyList:    $('history-list'),
   dbSelect:       $('db-select'),
   btnRun:         $('btn-run'),
   btnExportCsv:   $('btn-export-csv'),
   btnCopyResults: $('btn-copy-results'),
   btnRefreshDbs:  $('btn-refresh-dbs'),
+  btnRefreshResources: $('btn-refresh-resources'),
   btnNewCluster:  $('btn-new-cluster'),
   btnClearHistory:$('btn-clear-history'),
   resultsLoading: $('results-loading'),
@@ -183,12 +188,114 @@ async function loadDatabases(cluster) {
     state.activeDatabase = cluster.defaultDatabase || res.databases[0] || '';
     renderDatabases();
     setStatus(`Connected · ${cluster.name}`, 'ok');
+    loadResources();
   } else {
     state.databases = [];
+    state.activeDatabase = '';
+    state.resources = null;
     dom.dbSelect.innerHTML = '<option value="">— failed to load —</option>';
     setStatus(`Error: ${res.error}`, 'error');
     showToast('Could not load databases: ' + res.error, 'error', 6000);
+    loadResources();
   }
+}
+
+// ── Resources sidebar ──────────────────────────────────────────────────────
+const RESOURCE_ICONS = {
+  table: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="10" x2="9" y2="20"/></svg>',
+  view:  '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+};
+
+// Monotonic request id — responses tagged with an outdated id are discarded
+let resourcesReqId = 0;
+
+function renderResourcesMessage(text) {
+  dom.resourceList.innerHTML = `<div class="text-muted" style="padding:8px;font-size:11px;">${esc(text)}</div>`;
+}
+
+function renderResourcesError(msg) {
+  dom.resourceList.innerHTML = `<div class="resource-error">Failed to load resources: ${esc(msg)}</div>`;
+}
+
+function renderResources() {
+  const r = state.resources || { tables: [], materializedViews: [] };
+  const groups = [
+    { key: 'tables', label: 'Tables', items: r.tables, empty: 'No tables' },
+    { key: 'views',  label: 'Materialized Views', items: r.materializedViews, empty: 'No materialized views' },
+  ];
+
+  dom.resourceList.innerHTML =
+    `<div class="resource-root" title="${esc(state.activeDatabase)}">${esc(state.activeDatabase)}</div>` +
+    groups.map(g => `
+      <div class="resource-group">
+        <div class="resource-group-header ${state.resourcesExpanded[g.key] ? '' : 'collapsed'}" data-group="${g.key}">
+          <svg class="chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+          <span>${g.label}</span>
+          <span class="resource-count">${g.items.length}</span>
+        </div>
+        <div class="resource-items">
+          ${g.items.length
+            ? g.items.map(n => `
+                <div class="resource-item" data-name="${esc(n)}" data-kind="${g.key}" title="${esc(n)}">
+                  ${g.key === 'tables' ? RESOURCE_ICONS.table : RESOURCE_ICONS.view}
+                  <span>${esc(n)}</span>
+                </div>`).join('')
+            : `<div class="resource-empty">${g.empty}</div>`}
+        </div>
+      </div>`).join('');
+}
+
+async function loadResources() {
+  const cluster = state.activeCluster;
+  const database = state.activeDatabase;
+  const reqId = ++resourcesReqId;
+
+  if (!cluster || !database) {
+    renderResourcesMessage('— select database —');
+    return;
+  }
+
+  renderResourcesMessage('Loading resources…');
+
+  const res = await window.adxAPI.getResources({
+    url: cluster.url, database, authMethod: cluster.authMethod, authConfig: cluster.authConfig || {}
+  });
+
+  // Stale-response guard: the selection changed while the request was in flight
+  if (reqId !== resourcesReqId) return;
+
+  if (!res.success) {
+    renderResourcesError(res.error);
+    showToast('Could not load resources: ' + res.error, 'error', 6000);
+    return;
+  }
+
+  state.resources = res.resources;
+  renderResources();
+}
+
+// ── Resource context menu ──────────────────────────────────────────────────
+let contextTarget = null;
+
+function showContextMenu(x, y) {
+  const menu = dom.contextMenu;
+  menu.classList.remove('hidden');
+  const rect = menu.getBoundingClientRect();
+  menu.style.left = Math.max(4, Math.min(x, window.innerWidth - rect.width - 4)) + 'px';
+  menu.style.top = Math.max(4, Math.min(y, window.innerHeight - rect.height - 4)) + 'px';
+}
+
+function hideContextMenu() {
+  dom.contextMenu.classList.add('hidden');
+}
+
+function insertQuery100(name) {
+  // Always bracket-quoted (spec 0003 Decision 5); escape embedded quotes/backslashes defensively
+  const safe = String(name).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  editor.replaceSelection(`["${safe}"] | take 100`);
+  editor.focus();
 }
 
 // ── Select cluster ─────────────────────────────────────────────────────────
@@ -490,7 +597,9 @@ dom.clusterList.addEventListener('click', async (e) => {
       if (state.activeCluster?.id === deleteBtn.dataset.id) {
         state.activeCluster = null;
         state.databases = [];
+        state.resources = null;
         renderDatabases();
+        loadResources();
         setStatus('No cluster selected', '');
         updateAuthStatus();
       }
@@ -509,12 +618,46 @@ dom.historyList.addEventListener('click', (e) => {
 });
 
 // Database select
-dom.dbSelect.addEventListener('change', (e) => { state.activeDatabase = e.target.value; });
+dom.dbSelect.addEventListener('change', (e) => { state.activeDatabase = e.target.value; loadResources(); });
 
 // Refresh databases
 dom.btnRefreshDbs.addEventListener('click', () => {
   if (state.activeCluster) loadDatabases(state.activeCluster);
 });
+
+// Refresh resources
+dom.btnRefreshResources.addEventListener('click', () => {
+  if (state.activeCluster) loadResources();
+});
+
+// Resource tree interactions (delegation)
+dom.resourceList.addEventListener('click', (e) => {
+  const header = e.target.closest('.resource-group-header');
+  if (!header) return;
+  const key = header.dataset.group;
+  state.resourcesExpanded[key] = !state.resourcesExpanded[key];
+  header.classList.toggle('collapsed', !state.resourcesExpanded[key]);
+  header.nextElementSibling.style.display = state.resourcesExpanded[key] ? '' : 'none';
+});
+
+// Resource context menu
+dom.resourceList.addEventListener('contextmenu', (e) => {
+  const item = e.target.closest('.resource-item');
+  if (!item) return;
+  e.preventDefault();
+  contextTarget = item.dataset.name;
+  showContextMenu(e.clientX, e.clientY);
+});
+
+dom.contextMenu.addEventListener('click', (e) => {
+  const action = e.target.closest('[data-action="query-100"]');
+  hideContextMenu();
+  if (action && contextTarget != null) insertQuery100(contextTarget);
+});
+
+window.addEventListener('click', hideContextMenu);
+window.addEventListener('blur', hideContextMenu);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideContextMenu(); });
 
 // Clear history
 dom.btnClearHistory.addEventListener('click', async () => {

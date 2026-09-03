@@ -190,3 +190,61 @@ describe('result mapping (azure-kusto-data v6 API)', () => {
   });
 });
 
+describe('getResources', () => {
+  it('issues database-scoped mgmt commands and maps TableName/Name', async () => {
+    kusto.executeMgmt.mockImplementation(async (_db, cmd) => {
+      if (cmd === '.show tables') {
+        return { primaryResults: [{ rows: () => [
+          { toJSON: () => ({ TableName: 'T1' }) },
+          { toJSON: () => ({ TableName: 'T2' }) },
+          { toJSON: () => ({ Other: 1 }) },
+        ] }] };
+      }
+      if (cmd === '.show materialized views') {
+        return { primaryResults: [{ rows: () => [
+          { toJSON: () => ({ Name: 'MV1' }) },
+          { toJSON: () => ({ Other: 1 }) },
+        ] }] };
+      }
+      throw new Error(`unexpected command: ${cmd}`);
+    });
+
+    const res = await mgr.getResources(URL, 'db1', 'cli', {});
+
+    expect(kusto.executeMgmt).toHaveBeenCalledWith('db1', '.show tables');
+    expect(kusto.executeMgmt).toHaveBeenCalledWith('db1', '.show materialized views');
+    expect(res).toEqual({ tables: ['T1', 'T2'], materializedViews: ['MV1'] });
+  });
+
+  it('short-circuits on an empty database without creating a client', async () => {
+    const res = await mgr.getResources(URL, '', 'cli', {});
+
+    expect(res).toEqual({ tables: [], materializedViews: [] });
+    expect(kusto.Client).not.toHaveBeenCalled();
+    expect(kusto.executeMgmt).not.toHaveBeenCalled();
+  });
+
+  it('reuses the cached client across resource fetches', async () => {
+    kusto.executeMgmt.mockResolvedValue({ primaryResults: [{ rows: () => [] }] });
+
+    await mgr.getResources(URL, 'db1', 'cli', {});
+    await mgr.getResources(URL, 'db1', 'cli', {});
+
+    expect(kusto.Client).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes the device-code callback through to client creation', async () => {
+    kusto.executeMgmt.mockResolvedValue({ primaryResults: [{ rows: () => [] }] });
+    const onMsg = () => {};
+
+    await mgr.getResources(URL, 'db1', 'device-code', {}, onMsg);
+
+    expect(kusto.withAadDeviceAuthentication).toHaveBeenCalledWith(URL, undefined, onMsg);
+  });
+
+  it('propagates mgmt failures', async () => {
+    kusto.executeMgmt.mockRejectedValue(new Error('401 Unauthorized'));
+    await expect(mgr.getResources(URL, 'db1', 'cli', {})).rejects.toThrow('401 Unauthorized');
+  });
+});
+

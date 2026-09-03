@@ -10,7 +10,7 @@ import { toCsv } from '../../src/main/csv';
 
 const ALL_CHANNELS = [
   'clusters:get-all', 'clusters:add', 'clusters:update', 'clusters:delete',
-  'kusto:execute', 'kusto:test-connection', 'kusto:get-databases',
+  'kusto:execute', 'kusto:test-connection', 'kusto:get-databases', 'kusto:get-resources',
   'history:get', 'history:clear', 'export:csv',
 ];
 
@@ -41,6 +41,7 @@ beforeEach(() => {
   kustoManager = {
     execute: vi.fn().mockResolvedValue({ columns: [], rows: [], rowCount: 0 }),
     getDatabases: vi.fn().mockResolvedValue(['db1']),
+    getResources: vi.fn().mockResolvedValue({ tables: [], materializedViews: [] }),
     testConnection: vi.fn().mockResolvedValue(true),
     invalidate: vi.fn(),
   };
@@ -168,6 +169,43 @@ describe('kusto:test-connection / kusto:get-databases', () => {
     kustoManager.getDatabases.mockRejectedValue(new Error('401'));
     const result = await ipc.invoke('kusto:get-databases', args);
     expect(result).toEqual({ success: false, error: '401' });
+  });
+});
+
+describe('kusto:get-resources', () => {
+  const args = { url: 'https://help.kusto.windows.net', database: 'db1', authMethod: 'cli', authConfig: {} };
+  const resources = { tables: ['T1'], materializedViews: ['MV1'] };
+
+  it('success envelope returns tables and materialized views', async () => {
+    kustoManager.getResources.mockResolvedValue(resources);
+
+    const result = await ipc.invoke('kusto:get-resources', args);
+
+    expect(kustoManager.getResources).toHaveBeenCalledWith(
+      args.url, args.database, args.authMethod, args.authConfig, expect.any(Function)
+    );
+    expect(result).toEqual({ success: true, resources });
+  });
+
+  it('error envelope', async () => {
+    kustoManager.getResources.mockRejectedValue(new Error('401'));
+
+    const result = await ipc.invoke('kusto:get-resources', args);
+
+    expect(result).toEqual({ success: false, error: '401' });
+  });
+
+  it('relays device-code messages to the renderer', async () => {
+    kustoManager.getResources.mockImplementation(
+      async (_url, _db, _m, _c, onDeviceCodeMessage) => {
+        onDeviceCodeMessage('Enter code ABCD');
+        return resources;
+      }
+    );
+
+    await ipc.invoke('kusto:get-resources', { ...args, authMethod: 'device-code' });
+
+    expect(event.sender.send).toHaveBeenCalledWith('auth:device-code-message', 'Enter code ABCD');
   });
 });
 

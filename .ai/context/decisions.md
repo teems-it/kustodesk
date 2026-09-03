@@ -25,6 +25,38 @@ Each entry follows this format:
 
 <!-- Add new decisions below, newest first. -->
 
+## 2026-09-03 — Resource listing via dedicated mgmt commands (`.show tables` / `.show materialized views`)
+
+**Context:** The resource sidebar needs the names of tables and materialized views of the selected database. Alternatives: two targeted mgmt commands vs. one `.show database [name] schema` call (heavy payload, complex parsing — but includes columns/types useful for IntelliSense later).
+
+**Decision:** `KustoClientManager.getResources()` issues two database-scoped mgmt commands — `.show tables` (map `TableName`) and `.show materialized views` (map `Name`) — reusing the per-cluster client cache and the `getDatabases()` pattern. An empty database short-circuits before any client creation or mgmt call.
+
+**Consequences:** Simple, small payloads, stable output columns; two mgmt calls per refresh instead of one. Column/schema data (needed for 0004 IntelliSense) can be layered on later via the schema command.
+
+## 2026-09-03 — One combined `kusto:get-resources` IPC channel instead of two
+
+**Context:** The tree always renders both tables and materialized views together; the question was one combined channel vs. separate `kusto:get-tables` / `kusto:get-materialized-views`.
+
+**Decision:** Single `kusto:get-resources` channel returning `{ success, resources: { tables, materializedViews } }` with the standard success/error envelope and device-code relay; preload exposes `adxAPI.getResources(params)`.
+
+**Consequences:** One round trip, atomic tree refresh, fewer channels to register/test. A failure in either mgmt call fails the whole refresh — acceptable since the refresh button retries.
+
+## 2026-09-03 — Custom DOM context menu for the resource tree
+
+**Context:** Right-clicking a resource should offer "Query 100 rows". Candidates: Electron native `Menu.popup()` vs. a custom DOM menu.
+
+**Decision:** Custom DOM context menu in the renderer — fixed position, viewport-clamped, dismissed on click-away/Escape/blur — styled with the existing dark-theme tokens.
+
+**Consequences:** Consistent dark UI with no main-process coupling or IPC round trip per invocation. Manual positioning/dismissal logic lives in `app.js` (renderer is not covered by automated tests, per 0002 convention).
+
+## 2026-09-03 — "Query 100 rows" inserts an always bracket-quoted `["Name"] | take 100` at the cursor
+
+**Context:** The starter query must be safe for resource names containing spaces, special characters, or reserved words.
+
+**Decision:** Always insert `["ResourceName"] | take 100` via CodeMirror `replaceSelection` at the cursor (insertion only, never auto-run); embedded `\` and `"` are escaped defensively.
+
+**Consequences:** Correctness over aesthetics — slightly noisier query for simple names, but consistent output that is easy to test.
+
 ## 2026-09-02 — Re-sign Electron dev binary ad-hoc to fix revoked-notarization Gatekeeper block
 
 **Context:** After `npm install`, macOS flagged the freshly downloaded `node_modules/electron/dist/Electron.app` as "dangerous / will damage your computer" and blocked (then deleted) the app on launch. System log showed `Notarization daemon found revoked hash` — Apple revoked the notarization hash of some Electron 31 builds. Removing the `com.apple.quarantine` attribute did NOT help because revocation is checked online regardless of quarantine.

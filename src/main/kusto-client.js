@@ -128,6 +128,31 @@ class KustoClientManager {
     return dbs;
   }
 
+  async getResources(url, database, authMethod, authConfig, onDeviceCodeMessage) {
+    // Nothing selected — short-circuit without creating a client or any mgmt call
+    if (!database) return { tables: [], materializedViews: [] };
+
+    const client = this._getOrCreateClient(url, authMethod, authConfig, onDeviceCodeMessage);
+
+    // Both are database-scoped management commands — must use executeMgmt
+    const tablesResult = await client.executeMgmt(database, '.show tables');
+    const viewsResult = await client.executeMgmt(database, '.show materialized views');
+
+    const tables = [];
+    for (const row of tablesResult.primaryResults[0].rows()) {
+      const r = row.toJSON();
+      if (r.TableName) tables.push(r.TableName);
+    }
+
+    const materializedViews = [];
+    for (const row of viewsResult.primaryResults[0].rows()) {
+      const r = row.toJSON();
+      if (r.Name) materializedViews.push(r.Name);
+    }
+
+    return { tables, materializedViews };
+  }
+
   async testConnection(url, authMethod, authConfig, onDeviceCodeMessage) {
     await this.getDatabases(url, authMethod, authConfig, onDeviceCodeMessage);
     return true;

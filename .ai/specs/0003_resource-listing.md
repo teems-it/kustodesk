@@ -1,6 +1,6 @@
 # Spec: Resource Listing
 
-> **Status:** DRAFT  <!-- DRAFT → APPROVED → IN PROGRESS → DONE -->
+> **Status:** DONE  <!-- DRAFT → APPROVED → IN PROGRESS → DONE -->
 > **Created:** 2026-09-02
 > **Owner:** @gpasnik
 
