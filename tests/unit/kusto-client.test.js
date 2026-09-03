@@ -42,6 +42,18 @@ const QUERY_RESULT = {
   }],
 };
 
+// `.show database schema as json` response shape: a single row whose first column
+// carries the schema JSON string (includes the MaterializedViews map).
+const SCHEMA_JSON = JSON.stringify({
+  Databases: {
+    db1: {
+      Name: 'db1',
+      Tables: { T1: {} },
+      MaterializedViews: { MV1: {}, MV2: {} },
+    },
+  },
+});
+
 // fresh manager per test so the client cache never leaks between tests
 let mgr;
 beforeEach(() => {
@@ -213,6 +225,7 @@ describe('getResources', () => {
 
     expect(kusto.executeMgmt).toHaveBeenCalledWith('db1', '.show tables');
     expect(kusto.executeMgmt).toHaveBeenCalledWith('db1', '.show materialized views');
+    expect(kusto.executeMgmt).not.toHaveBeenCalledWith('db1', '.show database schema as json');
     expect(res).toEqual({ tables: ['T1', 'T2'], materializedViews: ['MV1'] });
   });
 
@@ -247,7 +260,7 @@ describe('getResources', () => {
     await expect(mgr.getResources(URL, 'db1', 'cli', {})).rejects.toThrow('401 Unauthorized');
   });
 
-  it('tolerates a failing .show materialized views (cluster without MV support) and still returns tables', async () => {
+  it('returns empty MVs (with a warn) when both the MV command and the schema fallback fail', async () => {
     kusto.executeMgmt.mockImplementation(async (_db, cmd) => {
       if (cmd === '.show tables') {
         return { primaryResults: [{ rows: () => [{ toJSON: () => ({ TableName: 'T1' }) }] }] };
@@ -273,6 +286,31 @@ describe('getResources', () => {
     );
 
     await expect(mgr.getResources(URL, 'db1', 'cli', {})).rejects.toThrow('General_BadRequest: nope');
+  });
+
+  it('falls back to .show database schema as json when .show materialized views fails', async () => {
+    kusto.executeMgmt.mockImplementation(async (_db, cmd) => {
+      if (cmd === '.show tables') {
+        return { primaryResults: [{ rows: () => [{ toJSON: () => ({ TableName: 'T1' }) }] }] };
+      }
+      if (cmd === '.show materialized views') {
+        throw Object.assign(new Error('Request failed with status code 400'), {
+          response: { status: 400, data: 'General_BadRequest: Request is invalid and cannot be executed.' },
+        });
+      }
+      if (cmd === '.show database schema as json') {
+        return { primaryResults: [{ rows: () => [{ toJSON: () => ({ Schema: SCHEMA_JSON }) }] }] };
+      }
+      throw new Error(`unexpected command: ${cmd}`);
+    });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const res = await mgr.getResources(URL, 'db1', 'cli', {});
+
+    expect(kusto.executeMgmt).toHaveBeenCalledWith('db1', '.show database schema as json');
+    expect(res).toEqual({ tables: ['T1'], materializedViews: ['MV1', 'MV2'] });
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });
 

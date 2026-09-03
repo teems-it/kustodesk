@@ -128,6 +128,19 @@ class KustoClientManager {
     return dbs;
   }
 
+  // Fallback for clusters that reject `.show materialized views` outright (observed:
+  // 400 General_BadRequest cluster-wide on a modern engine) — the database schema
+  // JSON carries the same MaterializedViews map and is known to work there.
+  async _showMaterializedViewsViaSchema(client, database) {
+    const results = await client.executeMgmt(database, '.show database schema as json');
+    const row = results.primaryResults[0].rows()[0] && results.primaryResults[0].rows()[0].toJSON();
+    const schemaJson = row ? Object.values(row)[0] : undefined;
+    const schema = typeof schemaJson === 'string' ? JSON.parse(schemaJson) : schemaJson;
+    const dbNode =
+      (schema && schema.Databases && (schema.Databases[database] || Object.values(schema.Databases)[0])) || {};
+    return Object.keys(dbNode.MaterializedViews || {});
+  }
+
   async getResources(url, database, authMethod, authConfig, onDeviceCodeMessage) {
     // Nothing selected — short-circuit without creating a client or any mgmt call
     if (!database) return { tables: [], materializedViews: [] };
@@ -136,8 +149,7 @@ class KustoClientManager {
 
     // Both are database-scoped management commands — must use executeMgmt.
     // Fetched independently: some clusters reject `.show materialized views` outright
-    // (400 General_BadRequest on engines without MV support), and that must not kill
-    // the table listing.
+    // (400 General_BadRequest), and that must not kill the table listing.
     const [tablesRes, viewsRes] = await Promise.allSettled([
       client.executeMgmt(database, '.show tables'),
       client.executeMgmt(database, '.show materialized views'),
@@ -145,11 +157,6 @@ class KustoClientManager {
 
     if (tablesRes.status === 'rejected') {
       throw new Error(describeKustoError(tablesRes.reason));
-    }
-
-    if (viewsRes.status === 'rejected') {
-      // Degrade gracefully: no MV listing, but the tables still render
-      console.warn(`[kusto] '.show materialized views' failed (returning empty list): ${describeKustoError(viewsRes.reason)}`);
     }
 
     const tables = [];
@@ -163,6 +170,18 @@ class KustoClientManager {
       for (const row of viewsRes.value.primaryResults[0].rows()) {
         const r = row.toJSON();
         if (r.Name) materializedViews.push(r.Name);
+      }
+    } else {
+      // `.show materialized views` failed — try the schema-JSON fallback before giving up
+      try {
+        const viaSchema = await this._showMaterializedViewsViaSchema(client, database);
+        materializedViews.push(...viaSchema);
+      } catch (fallbackErr) {
+        console.warn(
+          `[kusto] materialized-view listing failed (returning empty list): ` +
+            `'.show materialized views': ${describeKustoError(viewsRes.reason)}; ` +
+            `'.show database schema as json': ${describeKustoError(fallbackErr)}`
+        );
       }
     }
 
