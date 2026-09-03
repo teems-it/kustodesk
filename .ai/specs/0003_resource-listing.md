@@ -171,6 +171,7 @@ For each non-trivial decision point, document the options considered, the choice
 - Reuses the existing per-cluster client cache; device-code messages flow through the same `auth:device-code-message` relay
 - Test scenarios 5–6 mirror the error-envelope and race patterns already pinned by 0002's tests
 - Renderer behavior (tree, context menu) is verified manually per project convention — renderer code has no automated tests (see 0002 Out of Scope)
+- **Errata (2026-09-03):** Some clusters reject `.show materialized views` outright with 400 `General_BadRequest` (engine without MV support — observed cluster-wide on a production ADX cluster). `getResources` therefore fetches both lists independently via `Promise.allSettled`: an MV-command failure degrades to an empty list (warn logged in main), while a `.show tables` failure remains fatal. Kusto error bodies are surfaced in error envelopes via `describeKustoError` instead of the generic axios message.
 
 </task_progress>
 </write_to_file>

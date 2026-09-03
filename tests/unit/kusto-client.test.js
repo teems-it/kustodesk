@@ -29,7 +29,7 @@ akd.KustoConnectionStringBuilder = {
 const execSync = vi.fn();
 require('child_process').execSync = execSync;
 
-const { KustoClientManager } = await import('../../src/main/kusto-client');
+const { KustoClientManager, describeKustoError } = await import('../../src/main/kusto-client');
 
 const URL = 'https://help.kusto.windows.net';
 const QUERY_RESULT = {
@@ -245,6 +245,58 @@ describe('getResources', () => {
   it('propagates mgmt failures', async () => {
     kusto.executeMgmt.mockRejectedValue(new Error('401 Unauthorized'));
     await expect(mgr.getResources(URL, 'db1', 'cli', {})).rejects.toThrow('401 Unauthorized');
+  });
+
+  it('tolerates a failing .show materialized views (cluster without MV support) and still returns tables', async () => {
+    kusto.executeMgmt.mockImplementation(async (_db, cmd) => {
+      if (cmd === '.show tables') {
+        return { primaryResults: [{ rows: () => [{ toJSON: () => ({ TableName: 'T1' }) }] }] };
+      }
+      throw Object.assign(new Error('Request failed with status code 400'), {
+        response: { status: 400, data: 'General_BadRequest: Request is invalid and cannot be executed.' },
+      });
+    });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const res = await mgr.getResources(URL, 'db1', 'cli', {});
+
+    expect(res).toEqual({ tables: ['T1'], materializedViews: [] });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('General_BadRequest'));
+    warn.mockRestore();
+  });
+
+  it('still fails when .show tables rejects, with the Kusto error body in the message', async () => {
+    kusto.executeMgmt.mockRejectedValue(
+      Object.assign(new Error('Request failed with status code 400'), {
+        response: { status: 400, data: 'General_BadRequest: nope' },
+      })
+    );
+
+    await expect(mgr.getResources(URL, 'db1', 'cli', {})).rejects.toThrow('General_BadRequest: nope');
+  });
+});
+
+describe('describeKustoError', () => {
+  it('extracts a plain-string Kusto error body from an axios-style error', () => {
+    const err = Object.assign(new Error('Request failed with status code 400'), {
+      response: { status: 400, data: 'General_BadRequest: Request is invalid and cannot be executed.\nError details:\n...' },
+    });
+
+    expect(describeKustoError(err)).toContain('General_BadRequest');
+    expect(describeKustoError(err)).not.toContain('status code');
+  });
+
+  it('extracts @message from an object error body', () => {
+    const err = Object.assign(new Error('ignored'), {
+      response: { data: { error: { '@message': 'PermaBadRequest: nope', '@permanent': true } } },
+    });
+
+    expect(describeKustoError(err)).toBe('PermaBadRequest: nope');
+  });
+
+  it('falls back to err.message / the raw value when there is no response body', () => {
+    expect(describeKustoError(new Error('boom'))).toBe('boom');
+    expect(describeKustoError('weird')).toBe('weird');
   });
 });
 

@@ -25,6 +25,14 @@ Each entry follows this format:
 
 <!-- Add new decisions below, newest first. -->
 
+## 2026-09-03 — Tolerate `.show materialized views` failure in `getResources`; surface Kusto error bodies
+
+**Context:** On the ANOVEDA PROD cluster (`mbdevanoprdeuwkc.westeurope.kusto.windows.net`), `.show materialized views` returns 400 `General_BadRequest` for every database (engine without MV support) — and since `getResources` awaited both commands sequentially, the whole resource fetch failed with the unhelpful "Request failed with status code 400". Additionally, axios error messages hide Kusto's actual error description, which is carried in the HTTP response body.
+
+**Decision:** `getResources` fetches `.show tables` and `.show materialized views` independently via `Promise.allSettled`: a `.show tables` failure remains fatal; an MV-command failure degrades to an empty `materializedViews` list with a `console.warn` in the main process. New exported `describeKustoError(err)` extracts the Kusto error body (plain string or `{ error: { "@message" } }` object) and is used by all `kusto:*` IPC error envelopes.
+
+**Consequences:** The resource tree renders with tables even on clusters without MV support (shown as "No materialized views"; the warn is only visible in the main-process log). Error toasts now show the real Kusto reason (e.g. "General_BadRequest: Request is invalid and cannot be executed.") instead of the generic axios message. Supersedes the "a failure in one mgmt call fails the whole refresh" consequence of the combined-channel decision above.
+
 ## 2026-09-03 — Resource listing via dedicated mgmt commands (`.show tables` / `.show materialized views`)
 
 **Context:** The resource sidebar needs the names of tables and materialized views of the selected database. Alternatives: two targeted mgmt commands vs. one `.show database [name] schema` call (heavy payload, complex parsing — but includes columns/types useful for IntelliSense later).

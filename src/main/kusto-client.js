@@ -134,20 +134,36 @@ class KustoClientManager {
 
     const client = this._getOrCreateClient(url, authMethod, authConfig, onDeviceCodeMessage);
 
-    // Both are database-scoped management commands — must use executeMgmt
-    const tablesResult = await client.executeMgmt(database, '.show tables');
-    const viewsResult = await client.executeMgmt(database, '.show materialized views');
+    // Both are database-scoped management commands — must use executeMgmt.
+    // Fetched independently: some clusters reject `.show materialized views` outright
+    // (400 General_BadRequest on engines without MV support), and that must not kill
+    // the table listing.
+    const [tablesRes, viewsRes] = await Promise.allSettled([
+      client.executeMgmt(database, '.show tables'),
+      client.executeMgmt(database, '.show materialized views'),
+    ]);
+
+    if (tablesRes.status === 'rejected') {
+      throw new Error(describeKustoError(tablesRes.reason));
+    }
+
+    if (viewsRes.status === 'rejected') {
+      // Degrade gracefully: no MV listing, but the tables still render
+      console.warn(`[kusto] '.show materialized views' failed (returning empty list): ${describeKustoError(viewsRes.reason)}`);
+    }
 
     const tables = [];
-    for (const row of tablesResult.primaryResults[0].rows()) {
+    for (const row of tablesRes.value.primaryResults[0].rows()) {
       const r = row.toJSON();
       if (r.TableName) tables.push(r.TableName);
     }
 
     const materializedViews = [];
-    for (const row of viewsResult.primaryResults[0].rows()) {
-      const r = row.toJSON();
-      if (r.Name) materializedViews.push(r.Name);
+    if (viewsRes.status === 'fulfilled') {
+      for (const row of viewsRes.value.primaryResults[0].rows()) {
+        const r = row.toJSON();
+        if (r.Name) materializedViews.push(r.Name);
+      }
     }
 
     return { tables, materializedViews };
@@ -159,4 +175,21 @@ class KustoClientManager {
   }
 }
 
-module.exports = { KustoClientManager };
+// Extract the useful message from an SDK/axios error. Kusto returns its real error
+// description in the HTTP response body — either as a plain string
+// ("General_BadRequest: ...") or as an object ({ error: { "@message": ... } }) —
+// while err.message alone is the generic axios "Request failed with status code N".
+function describeKustoError(err) {
+  const data = err && err.response && err.response.data;
+  if (typeof data === 'string' && data.trim()) return data.trim();
+  if (data && typeof data === 'object') {
+    const msg =
+      (data.error && (data.error['@message'] || data.error.message)) ||
+      data['@message'] ||
+      data.message;
+    if (msg) return String(msg);
+  }
+  return (err && err.message) || String(err);
+}
+
+module.exports = { KustoClientManager, describeKustoError };

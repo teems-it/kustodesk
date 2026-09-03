@@ -195,6 +195,21 @@ describe('kusto:get-resources', () => {
     expect(result).toEqual({ success: false, error: '401' });
   });
 
+  it('error envelope surfaces the Kusto error body when present', async () => {
+    kustoManager.getResources.mockRejectedValue(
+      Object.assign(new Error('Request failed with status code 400'), {
+        response: { status: 400, data: 'General_BadRequest: Request is invalid and cannot be executed.' },
+      })
+    );
+
+    const result = await ipc.invoke('kusto:get-resources', args);
+
+    expect(result).toEqual({
+      success: false,
+      error: 'General_BadRequest: Request is invalid and cannot be executed.',
+    });
+  });
+
   it('relays device-code messages to the renderer', async () => {
     kustoManager.getResources.mockImplementation(
       async (_url, _db, _m, _c, onDeviceCodeMessage) => {

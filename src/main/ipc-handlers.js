@@ -4,6 +4,7 @@
 
 const fs = require('fs');
 const { toCsv } = require('./csv');
+const { describeKustoError } = require('./kusto-client');
 
 function registerIpcHandlers({ ipcMain, store, kustoManager, dialog, getWindow }) {
   // ── Cluster CRUD ────────────────────────────────────────────────────────────
@@ -37,7 +38,7 @@ function registerIpcHandlers({ ipcMain, store, kustoManager, dialog, getWindow }
 
       return { success: true, ...result };
     } catch (err) {
-      return { success: false, error: err.message || String(err) };
+      return { success: false, error: describeKustoError(err) };
     }
   });
 
@@ -47,7 +48,7 @@ function registerIpcHandlers({ ipcMain, store, kustoManager, dialog, getWindow }
       await kustoManager.testConnection(url, authMethod, authConfig, onMsg);
       return { success: true };
     } catch (err) {
-      return { success: false, error: err.message || String(err) };
+      return { success: false, error: describeKustoError(err) };
     }
   });
 
@@ -57,7 +58,7 @@ function registerIpcHandlers({ ipcMain, store, kustoManager, dialog, getWindow }
       const databases = await kustoManager.getDatabases(url, authMethod, authConfig, onMsg);
       return { success: true, databases };
     } catch (err) {
-      return { success: false, error: err.message || String(err) };
+      return { success: false, error: describeKustoError(err) };
     }
   });
 
@@ -67,7 +68,7 @@ function registerIpcHandlers({ ipcMain, store, kustoManager, dialog, getWindow }
       const resources = await kustoManager.getResources(url, database, authMethod, authConfig, onMsg);
       return { success: true, resources };
     } catch (err) {
-      return { success: false, error: err.message || String(err) };
+      return { success: false, error: describeKustoError(err) };
     }
   });
 
