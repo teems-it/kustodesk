@@ -34,7 +34,7 @@ _None — 0002 (Automated test suite) completed._
 
 <!-- The single next action to take. Must be concrete and actionable. -->
 
-_Start 0003 — Kusto IntelliSense: create `.ai/specs/0003_kusto-intellisense.md` following the feature template._
+_Start 0003 — Resource listing (spec ready: `.ai/specs/0003_resource-listing.md`). 0004 — Kusto IntelliSense follows._
 
 ---
 

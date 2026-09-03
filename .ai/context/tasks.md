@@ -15,8 +15,11 @@
 
 <!-- Upcoming tasks, ordered by priority. -->
 
-- **0003 — Kusto IntelliSense** (spec: `.ai/specs/0003_kusto-intellisense.md`, to be created)
-  Kusto/KQL-aware code completion in the query editor (replacing the generic SQL-mode highlighting-only setup from v1).
+- **0003 — Resource listing** (spec: `.ai/specs/0003_resource-listing.md`)
+  Sidebar tree of tables + materialized views for the selected database (via `kusto:get-resources` → `.show tables` / `.show materialized views`), with a right-click "Query 100 rows" action that inserts `["Name"] | take 100` into the editor.
+
+- **0004 — Kusto IntelliSense** (spec: to be created; renumbered from 0003)
+  Kusto/KQL-aware code completion in the query editor (replacing the generic SQL-mode highlighting-only setup from v1). Can reuse the resource list from 0003 for table/column completion.
 
 ## Done
 
