@@ -8,7 +8,7 @@
 ## Active Feature
 
 <!-- Name of the feature currently being worked on, or "None" -->
-_Active feature: 0004 — Kusto IntelliSense (spec creation is the first step). 0003 (Resource listing) completed with all reported bugs fixed._
+_Active feature: 0004 — Kusto IntelliSense (spec created at `.ai/specs/0004_kusto-intellisense.md`, DRAFT). 0003 (Resource listing) completed with all reported bugs fixed._
 
 ## Status
 
@@ -35,7 +35,7 @@ _Active feature: 0004 — Kusto IntelliSense (spec creation is the first step). 
 
 <!-- The single next action to take. Must be concrete and actionable. -->
 
-_Start 0004 — Kusto IntelliSense: create the spec (`.ai/specs/0004_kusto-intellisense.md`). The resource list from 0003 can be reused for table/column completion._
+_Start implement 0004 — Kusto IntelliSense per the spec (`.ai/specs/0004_kusto-intellisense.md`): begin with the backend (`getSchema()` in `src/main/kusto-client.js` + `kusto:get-schema` IPC + unit/integration tests), then the renderer hint engine (`kusto-hints.js`, `show-hint` wiring)._
 
 ### Manual verification pending (0003 DoD)
 

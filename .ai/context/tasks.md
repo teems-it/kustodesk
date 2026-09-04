@@ -9,7 +9,7 @@
 
 <!-- The single task currently being worked on. Only ONE at a time. -->
 
-- **0004 — Kusto IntelliSense** (spec: to be created at `.ai/specs/0004_kusto-intellisense.md`) — next step: create the spec; the 0003 resource list can be reused for table/column completion.
+- **0004 — Kusto IntelliSense** (spec: `.ai/specs/0004_kusto-intellisense.md`, DRAFT) — spec complete: `getSchema()` via one `.show database schema as json` call + `kusto:get-schema` IPC, new pure `src/renderer/kusto-hints.js`, custom CodeMirror 5 `show-hint` function in `app.js`. Next step: implement the backend (`getSchema` + IPC + tests), then the renderer hint engine.
 
 ## Todo
 
