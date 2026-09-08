@@ -131,3 +131,18 @@
 **Next:**
 - Push to `main` to trigger the first "Build & Test" run, then start 0003 — Kusto IntelliSense (create `.ai/specs/0003_kusto-intellisense.md`).
 
+## 2026-09-08 - Session Summary
+
+**Commits:** `14d3aa3` (0004 backend chunk). Since the last sync the repo also gained `3bf351f` (version 1.1.0) and `6ea1ed1` (0004 spec committed) outside the assistant session.
+
+**What was done:**
+- `14d3aa3` - **0004 backend chunk**: `getSchema()` in kusto-client.js (single `.show database schema as json` mgmt call; empty-db short-circuit; defensive column normalizer for OrderedColumns / object-array / object-map column shapes; failures wrapped with describeKustoError); extracted shared `_fetchDatabaseSchemaNode()` (also used by the 0003 MV fallback); `kusto:get-schema` IPC handler + `adxAPI.getSchema()` preload; +6 unit and +3 integration tests - 74 total green; E2E smoke green; spec 0004 -> IN PROGRESS
+- PCS sync: two decision entries appended (completion schema source; custom hint engine over sql-hint); current-state / tasks / progress-log refreshed; .last-sync -> HEAD
+
+**Status after session:**
+
+- 0004 backend done and committed; 74 unit+integration tests + 1 E2E smoke all green; working tree clean; renderer hint engine not started.
+
+**Next:**
+
+- Implement the renderer hint engine: new pure `src/renderer/kusto-hints.js` (curated Kusto keywords/functions, collectIdentifiers, buildCompletions, prefixMatch with cap; UMD shim) + unit tests; then editor integration in app.js/index.html (show-hint.min.js script tag, schema cache keyed by url::database with stale-response guard, custom hint function, Ctrl/Cmd+Space + auto-popup, silent keyword-only fallback on schema failure).

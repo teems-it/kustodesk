@@ -25,6 +25,23 @@ Each entry follows this format:
 
 <!-- Add new decisions below, newest first. -->
 
+## 2026-09-08 - Completion schema comes from one `.show database schema as json` call
+
+**Context:** The 0004 hint engine needs table, materialized-view, and column names per database. Alternatives: one schema-JSON mgmt call, per-resource `.show table <name> cslschema` fetches, or extending `getResources()` to also return columns (spec 0004, Decision 1).
+
+**Decision:** New `KustoClientManager.getSchema()` makes a single `.show database schema as json` mgmt call - parsed by a shared `_fetchDatabaseSchemaNode()` helper also used by the 0003 MV fallback - and is exposed via a dedicated `kusto:get-schema` IPC channel + `adxAPI.getSchema()` preload bridge. `getResources()` is untouched.
+
+**Consequences:** One round-trip; tolerant of clusters that reject per-resource commands (the observed SYN0002 engine serves full schema JSON); column shapes normalized defensively (OrderedColumns string array / object array / object map). Trade-off: the schema JSON is fetched twice on selection (sidebar + editor) - acceptable for v1; folding both behind one channel is a future optimization.
+
+## 2026-09-08 - Custom hint engine on CodeMirror 5 show-hint instead of sql-hint
+
+**Context:** The query editor needs Kusto-aware completion. CodeMirror 5 ships an sql-hint addon, but Kusto is not SQL, and the renderer has no automated DOM test harness (spec 0004, Decision 2).
+
+**Decision:** Load `addon/hint/show-hint.min.js` in index.html (its CSS is already linked) and implement a custom hint function backed by a dependency-free pure module (`src/renderer/kusto-hints.js`, UMD shim so Vitest can require it) holding the curated Kusto keyword/function vocabulary plus pure completion-assembly helpers (identifier scan, ranking, prefix filter with cap).
+
+**Consequences:** Full control over vocabulary, ranking, and triggers; completion logic is unit-testable without the DOM. Trade-off: the keyword/function list is maintained by hand - kept minimal-but-useful for v1.
+
+
 ## 2026-09-03 — MV listing falls back to `.show database schema as json`
 
 **Context:** On the ANOVEDA PROD cluster (`mbdevanoprdeuwkc.westeurope.kusto.windows.net`) every database contains materialized views (e.g. `MicroWeatherView`, `GeoJsonView`), yet `.show materialized views` fails cluster-wide with a parser-level `Syntax error: SYN0002: A recognition error occurred. [1:6]` — the engine does not recognize the command — while `.show database schema as json` returns 200 carrying the full `MaterializedViews` map. The previous graceful degradation therefore always showed an empty MV list. (The earlier "engine without MV support" diagnosis was wrong.)

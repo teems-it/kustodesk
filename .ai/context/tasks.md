@@ -9,7 +9,7 @@
 
 <!-- The single task currently being worked on. Only ONE at a time. -->
 
-- **0004 — Kusto IntelliSense** (spec: `.ai/specs/0004_kusto-intellisense.md`, DRAFT) — spec complete: `getSchema()` via one `.show database schema as json` call + `kusto:get-schema` IPC, new pure `src/renderer/kusto-hints.js`, custom CodeMirror 5 `show-hint` function in `app.js`. Next step: implement the backend (`getSchema` + IPC + tests), then the renderer hint engine.
+- **0004 - Kusto IntelliSense** (spec: `.ai/specs/0004_kusto-intellisense.md`, IN PROGRESS) - backend done (commit 14d3aa3): `getSchema()` via one `.show database schema as json` call, `kusto:get-schema` IPC + `adxAPI.getSchema()` preload, 9 new tests (74 total green). Next: renderer hint engine (`kusto-hints.js` + unit tests), then editor integration.
 
 ## Todo
 
