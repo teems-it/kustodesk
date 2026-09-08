@@ -340,6 +340,114 @@ describe('getResources', () => {
   });
 });
 
+describe('getSchema', () => {
+  const schemaJson = JSON.stringify({
+    Databases: {
+      db1: {
+        Name: 'db1',
+        Tables: {
+          StormEvents: { Name: 'StormEvents', OrderedColumns: ['StartTime', 'EndTime', 'State'] },
+        },
+        MaterializedViews: {
+          MicroWeatherView: { Name: 'MicroWeatherView', OrderedColumns: ['Timestamp', 'TempC'] },
+        },
+      },
+    },
+  });
+
+  // rows() is a generator on real KustoResultTables — mirror that in the mock
+  const schemaResult = (json) => ({
+    primaryResults: [{ rows: function* () { yield { toJSON: () => ({ Schema: json }) }; } }],
+  });
+
+  it('parses tables + materialized views with ordered columns in a single mgmt call', async () => {
+    kusto.executeMgmt.mockResolvedValue(schemaResult(schemaJson));
+
+    const schema = await mgr.getSchema(URL, 'db1', 'cli', {});
+
+    expect(kusto.executeMgmt).toHaveBeenCalledTimes(1);
+    expect(kusto.executeMgmt).toHaveBeenCalledWith('db1', '.show database schema as json');
+    expect(schema).toEqual({
+      tables: { StormEvents: ['StartTime', 'EndTime', 'State'] },
+      materializedViews: { MicroWeatherView: ['Timestamp', 'TempC'] },
+    });
+  });
+
+  it('short-circuits on an empty database without creating a client or mgmt call', async () => {
+    const schema = await mgr.getSchema(URL, '', 'cli', {});
+
+    expect(schema).toEqual({ tables: {}, materializedViews: {} });
+    expect(kusto.Client).not.toHaveBeenCalled();
+    expect(kusto.executeMgmt).not.toHaveBeenCalled();
+  });
+
+  it('defensively normalizes columns-as-object-array and columns-as-object shapes; missing → []', async () => {
+    const weird = JSON.stringify({
+      Databases: {
+        db1: {
+          Tables: {
+            ObjCols: { OrderedColumns: [{ Name: 'A' }, { ColumnName: 'B' }] },
+            MapCols: { Columns: { X: {}, Y: {} } },
+            NoCols: {},
+          },
+          MaterializedViews: {},
+        },
+      },
+    });
+    kusto.executeMgmt.mockResolvedValue(schemaResult(weird));
+
+    const schema = await mgr.getSchema(URL, 'db1', 'cli', {});
+
+    expect(schema.tables).toEqual({ ObjCols: ['A', 'B'], MapCols: ['X', 'Y'], NoCols: [] });
+    expect(schema.materializedViews).toEqual({});
+  });
+
+  it('falls back to the first database node when the requested name is absent', async () => {
+    kusto.executeMgmt.mockResolvedValue(schemaResult(schemaJson));
+
+    const schema = await mgr.getSchema(URL, 'other-db', 'cli', {});
+
+    expect(schema.tables).toEqual({ StormEvents: ['StartTime', 'EndTime', 'State'] });
+  });
+
+  it('regression: parses through the REAL SDK KustoResponseDataSetV1 (generator rows())', async () => {
+    const { KustoResponseDataSetV1 } = require('azure-kusto-data/dist-esm/src/response.js');
+    const response = new KustoResponseDataSetV1({
+      Tables: [{
+        TableName: 'Table_0',
+        Columns: [{ ColumnName: 'DatabaseSchema', DataType: 'String' }],
+        Rows: [[JSON.stringify({
+          Databases: {
+            db1: {
+              Name: 'db1',
+              Tables: { T1: { Name: 'T1', OrderedColumns: ['C1', 'C2'] } },
+              MaterializedViews: { MV1: { Name: 'MV1', OrderedColumns: ['M1'] } },
+            },
+          },
+        })]],
+      }],
+    });
+    kusto.executeMgmt.mockResolvedValue(response);
+
+    const schema = await mgr.getSchema(URL, 'db1', 'cli', {});
+
+    expect(schema).toEqual({
+      tables: { T1: ['C1', 'C2'] },
+      materializedViews: { MV1: ['M1'] },
+    });
+  });
+
+  it('propagates failures described by describeKustoError', async () => {
+    kusto.executeMgmt.mockRejectedValue(
+      Object.assign(new Error('Request failed with status code 401'), {
+        response: { status: 401, data: 'Unauthorized: bad token' },
+      })
+    );
+
+    await expect(mgr.getSchema(URL, 'db1', 'cli', {})).rejects.toThrow('Unauthorized: bad token');
+  });
+});
+
 describe('describeKustoError', () => {
   it('extracts a plain-string Kusto error body from an axios-style error', () => {
     const err = Object.assign(new Error('Request failed with status code 400'), {

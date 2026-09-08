@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('adxAPI', {
   testConnection: (params) => ipcRenderer.invoke('kusto:test-connection', params),
   getDatabases: (params) => ipcRenderer.invoke('kusto:get-databases', params),
   getResources: (params) => ipcRenderer.invoke('kusto:get-resources', params),
+  getSchema: (params) => ipcRenderer.invoke('kusto:get-schema', params),
 
   // History
   getHistory: (clusterId) => ipcRenderer.invoke('history:get', clusterId),

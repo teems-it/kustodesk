@@ -72,6 +72,16 @@ function registerIpcHandlers({ ipcMain, store, kustoManager, dialog, getWindow }
     }
   });
 
+  ipcMain.handle('kusto:get-schema', async (event, { url, database, authMethod, authConfig }) => {
+    try {
+      const onMsg = makeDeviceCodeCallback(event);
+      const schema = await kustoManager.getSchema(url, database, authMethod, authConfig, onMsg);
+      return { success: true, schema };
+    } catch (err) {
+      return { success: false, error: describeKustoError(err) };
+    }
+  });
+
   // ── History ───────────────────────────────────────────────────────────────────
 
   ipcMain.handle('history:get', (_, clusterId) => store.getHistory(clusterId));

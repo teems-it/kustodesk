@@ -1,6 +1,6 @@
 # Spec: Kusto Intellisense
 
-> **Status:** APPROVED  <!-- DRAFT → APPROVED → IN PROGRESS → DONE -->
+> **Status:** IN PROGRESS  <!-- DRAFT → APPROVED → IN PROGRESS → DONE -->
 > **Created:** 2026-09-03
 > **Owner:** @gpasnik
 

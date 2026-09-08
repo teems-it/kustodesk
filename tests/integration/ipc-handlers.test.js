@@ -10,7 +10,7 @@ import { toCsv } from '../../src/main/csv';
 
 const ALL_CHANNELS = [
   'clusters:get-all', 'clusters:add', 'clusters:update', 'clusters:delete',
-  'kusto:execute', 'kusto:test-connection', 'kusto:get-databases', 'kusto:get-resources',
+  'kusto:execute', 'kusto:test-connection', 'kusto:get-databases', 'kusto:get-resources', 'kusto:get-schema',
   'history:get', 'history:clear', 'export:csv',
 ];
 
@@ -42,6 +42,7 @@ beforeEach(() => {
     execute: vi.fn().mockResolvedValue({ columns: [], rows: [], rowCount: 0 }),
     getDatabases: vi.fn().mockResolvedValue(['db1']),
     getResources: vi.fn().mockResolvedValue({ tables: [], materializedViews: [] }),
+    getSchema: vi.fn().mockResolvedValue({ tables: {}, materializedViews: {} }),
     testConnection: vi.fn().mockResolvedValue(true),
     invalidate: vi.fn(),
   };
@@ -219,6 +220,50 @@ describe('kusto:get-resources', () => {
     );
 
     await ipc.invoke('kusto:get-resources', { ...args, authMethod: 'device-code' });
+
+    expect(event.sender.send).toHaveBeenCalledWith('auth:device-code-message', 'Enter code ABCD');
+  });
+});
+
+describe('kusto:get-schema', () => {
+  const args = { url: 'https://help.kusto.windows.net', database: 'db1', authMethod: 'cli', authConfig: {} };
+  const schema = { tables: { T1: ['A', 'B'] }, materializedViews: { MV1: ['C'] } };
+
+  it('success envelope returns the schema', async () => {
+    kustoManager.getSchema.mockResolvedValue(schema);
+
+    const result = await ipc.invoke('kusto:get-schema', args);
+
+    expect(kustoManager.getSchema).toHaveBeenCalledWith(
+      args.url, args.database, args.authMethod, args.authConfig, expect.any(Function)
+    );
+    expect(result).toEqual({ success: true, schema });
+  });
+
+  it('error envelope surfaces the Kusto error body when present', async () => {
+    kustoManager.getSchema.mockRejectedValue(
+      Object.assign(new Error('Request failed with status code 400'), {
+        response: { status: 400, data: 'General_BadRequest: Request is invalid and cannot be executed.' },
+      })
+    );
+
+    const result = await ipc.invoke('kusto:get-schema', args);
+
+    expect(result).toEqual({
+      success: false,
+      error: 'General_BadRequest: Request is invalid and cannot be executed.',
+    });
+  });
+
+  it('relays device-code messages to the renderer', async () => {
+    kustoManager.getSchema.mockImplementation(
+      async (_url, _db, _m, _c, onDeviceCodeMessage) => {
+        onDeviceCodeMessage('Enter code ABCD');
+        return schema;
+      }
+    );
+
+    await ipc.invoke('kusto:get-schema', { ...args, authMethod: 'device-code' });
 
     expect(event.sender.send).toHaveBeenCalledWith('auth:device-code-message', 'Enter code ABCD');
   });

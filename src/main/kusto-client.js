@@ -132,6 +132,14 @@ class KustoClientManager {
   // 400 General_BadRequest cluster-wide on a modern engine) — the database schema
   // JSON carries the same MaterializedViews map and is known to work there.
   async _showMaterializedViewsViaSchema(client, database) {
+    const dbNode = await this._fetchDatabaseSchemaNode(client, database);
+    return Object.keys(dbNode.MaterializedViews || {});
+  }
+
+  // Fetch and parse the database schema JSON down to the requested database node
+  // (falls back to the first database when the name differs — some engines
+  // return a different name/casing than the one requested).
+  async _fetchDatabaseSchemaNode(client, database) {
     const results = await client.executeMgmt(database, '.show database schema as json');
     // rows() is a GENERATOR on real KustoResultTables (models.js `*rows()`) —
     // it must be iterated, not indexed (rows()[0] is undefined on generators).
@@ -141,9 +149,47 @@ class KustoClientManager {
       break; // single-row result
     }
     const schema = typeof schemaJson === 'string' ? JSON.parse(schemaJson) : schemaJson;
-    const dbNode =
-      (schema && schema.Databases && (schema.Databases[database] || Object.values(schema.Databases)[0])) || {};
-    return Object.keys(dbNode.MaterializedViews || {});
+    return (schema && schema.Databases && (schema.Databases[database] || Object.values(schema.Databases)[0])) || {};
+  }
+
+  // Column names from a schema-JSON table/MV node. The real payload carries an
+  // OrderedColumns string array, but tolerate columns-as-object-array and
+  // columns-as-object shapes so odd engine variants never break completion.
+  _normalizeColumns(node) {
+    if (!node || typeof node !== 'object') return [];
+    const cols = node.OrderedColumns !== undefined ? node.OrderedColumns : node.Columns;
+    if (Array.isArray(cols)) {
+      return cols
+        .map((c) => (typeof c === 'string' ? c : c && (c.Name || c.ColumnName)))
+        .filter(Boolean);
+    }
+    if (cols && typeof cols === 'object') return Object.keys(cols);
+    return [];
+  }
+
+  // Full column schema of a database for the IntelliSense engine (spec 0004):
+  // a single schema-JSON mgmt call parsed into maps of resource name → ordered
+  // column-name list (empty objects when none exist).
+  async getSchema(url, database, authMethod, authConfig, onDeviceCodeMessage) {
+    // Nothing selected — short-circuit without creating a client or any mgmt call
+    if (!database) return { tables: {}, materializedViews: {} };
+
+    try {
+      const client = this._getOrCreateClient(url, authMethod, authConfig, onDeviceCodeMessage);
+      const dbNode = await this._fetchDatabaseSchemaNode(client, database);
+
+      const tables = {};
+      for (const [name, node] of Object.entries(dbNode.Tables || {})) {
+        tables[name] = this._normalizeColumns(node);
+      }
+      const materializedViews = {};
+      for (const [name, node] of Object.entries(dbNode.MaterializedViews || {})) {
+        materializedViews[name] = this._normalizeColumns(node);
+      }
+      return { tables, materializedViews };
+    } catch (err) {
+      throw new Error(describeKustoError(err));
+    }
   }
 
   async getResources(url, database, authMethod, authConfig, onDeviceCodeMessage) {
