@@ -146,3 +146,14 @@
 **Next:**
 
 - Implement the renderer hint engine: new pure `src/renderer/kusto-hints.js` (curated Kusto keywords/functions, collectIdentifiers, buildCompletions, prefixMatch with cap; UMD shim) + unit tests; then editor integration in app.js/index.html (show-hint.min.js script tag, schema cache keyed by url::database with stale-response guard, custom hint function, Ctrl/Cmd+Space + auto-popup, silent keyword-only fallback on schema failure).
+## 2026-09-08 - 0004 renderer hint engine (commit 2347cd9)
+
+**Task:** 0004 chunk 2 - pure hint-engine module - DONE
+
+**What was done:**
+- `2347cd9` - src/renderer/kusto-hints.js: dependency-free pure module with UMD shim (window.KustoHints / module.exports): curated Kusto vocabulary (56 keywords incl. join kinds, 89 functions, 10 types), prefixMatch (case-insensitive, cap 50), collectIdentifiers (bracket-quoted names, pipeline-segment starts, join targets; operator exclusion), buildCompletions (dot-scoped columns; tables+MVs; boosted referenced-table columns; all-DB columns; vocabulary - deduped, capped, { text, displayText, hintType } items)
+- tests/unit/kusto-hints.test.js: 15 unit tests; they caught two real bugs fixed on the spot (unfiltered column completions bypassing the prefix, a FUNCTIONS block lost to an interrupted file write) - 94 unit+integration tests + E2E smoke green
+- `be9935a` - pcs: current-state Next Step -> editor-integration chunk
+
+**Next:**
+- Editor integration chunk: show-hint.min.js script tag in index.html, schema cache in app.js keyed by cluster::database with the stale-response guard, custom hint function (Ctrl/Cmd+Space + auto-popup 2+ chars and after dot, suppressed in comments/strings), silent keyword-only degradation on schema failure; then manual spec scenarios 1-6, README bullet, spec 0004 -> DONE.

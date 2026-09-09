@@ -8,7 +8,7 @@
 ## Active Feature
 
 <!-- Name of the feature currently being worked on, or "None" -->
-_Active feature: 0004 — Kusto IntelliSense (spec created at `.ai/specs/0004_kusto-intellisense.md`, IN PROGRESS; backend chunk done (commit 14d3aa3); renderer hint engine next._
+_Active feature: 0004 — Kusto IntelliSense (spec created at `.ai/specs/0004_kusto-intellisense.md`, IN PROGRESS; backend done (14d3aa3) + pure hint-engine module done (2347cd9); editor integration next._
 
 ## Status
 
@@ -18,10 +18,11 @@ _Active feature: 0004 — Kusto IntelliSense (spec created at `.ai/specs/0004_ku
 |---|---|---|
 | _Backend_ | First version implemented. | `main.js` thin composition root; IPC in `ipc-handlers.js`; `getResources()` in `kusto-client.js` |
 | _Frontend_ | First version implemented. | Resources sidebar (tables + materialized views, context menu) added in 0003 |
-| _Tests_ | 65 unit+integration tests + 1 E2E smoke, all green. | Vitest; `npm test` / `npm run test:e2e`; CI in `build.yml` |
+| _Tests_ | 94 unit+integration tests + 1 E2E smoke, all green. | Vitest; `npm test` / `npm run test:e2e`; CI in `build.yml` |
 | _CI_ | "Build & Test" workflow added (`build.yml`); "Build & Release" unchanged. | Runs on push to `main` + PRs |
 | _Docs_ | README dev/testing section + macOS Gatekeeper note + resource sidebar feature bullet. |
-| _0004 backend_ | Done: getSchema + kusto:get-schema IPC + preload; 74 tests green | Renderer hint engine next | — |
+| _0004 backend_ | Done: getSchema + kusto:get-schema IPC + preload (14d3aa3) | - |
+| _0004 hint engine_ | Done: kusto-hints.js pure module + 15 unit tests (2347cd9) | Editor integration next | — |
 
 ## Known Issues
 

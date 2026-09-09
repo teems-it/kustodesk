@@ -9,7 +9,7 @@
 
 <!-- The single task currently being worked on. Only ONE at a time. -->
 
-- **0004 - Kusto IntelliSense** (spec: `.ai/specs/0004_kusto-intellisense.md`, IN PROGRESS) - backend done (commit 14d3aa3): `getSchema()` via one `.show database schema as json` call, `kusto:get-schema` IPC + `adxAPI.getSchema()` preload, 9 new tests (74 total green). Next: renderer hint engine (`kusto-hints.js` + unit tests), then editor integration.
+- **0004 - Kusto IntelliSense** (spec: `.ai/specs/0004_kusto-intellisense.md`, IN PROGRESS) - backend done (getSchema + kusto:get-schema IPC + preload, commit 14d3aa3) and pure hint-engine module done (src/renderer/kusto-hints.js + 15 unit tests, commit 2347cd9; 94 unit+integration tests + E2E green). Next: editor integration (show-hint.min.js, schema cache in app.js, hint triggers), then manual verification and spec -> DONE.
 
 ## Todo
 
