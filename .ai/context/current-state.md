@@ -8,7 +8,7 @@
 ## Active Feature
 
 <!-- Name of the feature currently being worked on, or "None" -->
-_Active feature: 0004 — Kusto IntelliSense (spec created at `.ai/specs/0004_kusto-intellisense.md`, IN PROGRESS; backend done (14d3aa3) + pure hint-engine module done (2347cd9); editor integration next._
+_Active feature: 0004 — Kusto IntelliSense (spec created at `.ai/specs/0004_kusto-intellisense.md`, IN PROGRESS; backend done (14d3aa3), hint engine done (2347cd9), editor integration done (c84d35f); manual verification + spec -> DONE next._
 
 ## Status
 
@@ -22,7 +22,8 @@ _Active feature: 0004 — Kusto IntelliSense (spec created at `.ai/specs/0004_ku
 | _CI_ | "Build & Test" workflow added (`build.yml`); "Build & Release" unchanged. | Runs on push to `main` + PRs |
 | _Docs_ | README dev/testing section + macOS Gatekeeper note + resource sidebar feature bullet. |
 | _0004 backend_ | Done: getSchema + kusto:get-schema IPC + preload (14d3aa3) | - |
-| _0004 hint engine_ | Done: kusto-hints.js pure module + 15 unit tests (2347cd9) | Editor integration next | — |
+| _0004 hint engine_ | Done: kusto-hints.js pure module + 15 unit tests (2347cd9) | - |
+| _0004 editor integration_ | Done: show-hint.min.js, schema cache + stale guard, custom hint fn, Ctrl/Cmd+Space + auto-popup, dark popup theme (c84d35f) | Manual verification pending |
 
 ## Known Issues
 
@@ -37,7 +38,7 @@ _Active feature: 0004 — Kusto IntelliSense (spec created at `.ai/specs/0004_ku
 
 <!-- The single next action to take. Must be concrete and actionable. -->
 
-_Continue 0004 - Kusto IntelliSense: wire the hint engine into the editor (editor-integration chunk of .ai/specs/0004_kusto-intellisense.md). 1) index.html: add the addon/hint/show-hint.min.js script tag (cdnjs 5.65.18) before app.js - its CSS is already linked. 2) app.js: schema cache keyed by cluster::database, fetched via adxAPI.getSchema() on the same triggers as resources (loadDatabases success, db-select change, refresh button) with the 0003-style monotonic stale-response guard; schema-fetch failure degrades silently to keywords/functions only (console-level visibility, no toast spam). 3) Custom hint function on show-hint backed by window.KustoHints.buildCompletions - dot-completion via the identifier before the cursor dot, Ctrl/Cmd+Space in extraKeys, auto-popup while typing an identifier of 2+ chars and after a dot, suppressed inside comments/strings via a CodeMirror token check, dismissed by Escape/click-away/cursor exit. 4) Manual verification of spec test scenarios 1-6 with npm start, README feature bullet, then spec 0004 -> DONE._
+_Editor integration done (c84d35f). Manual verification of spec test scenarios 1-6 with `npm start` (real cluster): 1) keyword completion without schema (Ctrl/Cmd+Space), 2) table/MV completion above keywords, 3) `Table.` dot-completion scoped to columns, 4) column fallback on fresh query, 5) db switch discards in-flight stale schema, 6) silent keyword-only degradation on schema failure (no toast spam). Also spot-check: auto-popup suppression inside comments/strings, Escape/click-away dismissal, refresh button forces schema refetch. Then spec 0004 -> DONE._
 
 ### Manual verification pending (0003 DoD)
 

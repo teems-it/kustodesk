@@ -9,7 +9,7 @@
 
 <!-- The single task currently being worked on. Only ONE at a time. -->
 
-- **0004 - Kusto IntelliSense** (spec: `.ai/specs/0004_kusto-intellisense.md`, IN PROGRESS) - backend done (getSchema + kusto:get-schema IPC + preload, commit 14d3aa3) and pure hint-engine module done (src/renderer/kusto-hints.js + 15 unit tests, commit 2347cd9; 94 unit+integration tests + E2E green). Next: editor integration (show-hint.min.js, schema cache in app.js, hint triggers), then manual verification and spec -> DONE.
+- **0004 - Kusto IntelliSense** (spec: `.ai/specs/0004_kusto-intellisense.md`, IN PROGRESS) - backend done (getSchema + kusto:get-schema IPC + preload, commit 14d3aa3), pure hint-engine module done (src/renderer/kusto-hints.js + 15 unit tests, commit 2347cd9), editor integration done (show-hint.min.js script tag, schema cache + monotonic stale-response guard in app.js, custom kustoHint fn with dot-completion, Ctrl/Cmd+Space + auto-popup, comment/string suppression, dark popup theme, README bullet — commit c84d35f; 94 unit+integration tests + E2E green). Next: manual verification of spec scenarios 1-6 with npm start, then spec -> DONE.
 
 ## Todo
 
