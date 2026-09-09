@@ -8,7 +8,7 @@
 ## Active Feature
 
 <!-- Name of the feature currently being worked on, or "None" -->
-_Active feature: 0004 — Kusto IntelliSense (spec created at `.ai/specs/0004_kusto-intellisense.md`, DRAFT). 0003 (Resource listing) completed with all reported bugs fixed._
+_Active feature: 0004 — Kusto IntelliSense (spec created at `.ai/specs/0004_kusto-intellisense.md`, IN PROGRESS; backend chunk done (commit 14d3aa3); renderer hint engine next._
 
 ## Status
 
@@ -20,7 +20,8 @@ _Active feature: 0004 — Kusto IntelliSense (spec created at `.ai/specs/0004_ku
 | _Frontend_ | First version implemented. | Resources sidebar (tables + materialized views, context menu) added in 0003 |
 | _Tests_ | 65 unit+integration tests + 1 E2E smoke, all green. | Vitest; `npm test` / `npm run test:e2e`; CI in `build.yml` |
 | _CI_ | "Build & Test" workflow added (`build.yml`); "Build & Release" unchanged. | Runs on push to `main` + PRs |
-| _Docs_ | README dev/testing section + macOS Gatekeeper note + resource sidebar feature bullet. | — |
+| _Docs_ | README dev/testing section + macOS Gatekeeper note + resource sidebar feature bullet. |
+| _0004 backend_ | Done: getSchema + kusto:get-schema IPC + preload; 74 tests green | Renderer hint engine next | — |
 
 ## Known Issues
 
@@ -35,7 +36,7 @@ _Active feature: 0004 — Kusto IntelliSense (spec created at `.ai/specs/0004_ku
 
 <!-- The single next action to take. Must be concrete and actionable. -->
 
-_Start implement 0004 — Kusto IntelliSense per the spec (`.ai/specs/0004_kusto-intellisense.md`): begin with the backend (`getSchema()` in `src/main/kusto-client.js` + `kusto:get-schema` IPC + unit/integration tests), then the renderer hint engine (`kusto-hints.js`, `show-hint` wiring)._
+_Continue 0004 - Kusto IntelliSense per the spec (`.ai/specs/0004_kusto-intellisense.md`): implement the renderer hint engine - new pure `src/renderer/kusto-hints.js` (curated Kusto keywords/functions, collectIdentifiers, buildCompletions, prefixMatch with cap; UMD shim) + unit tests, then editor integration in `app.js`/`index.html` (show-hint.min.js script tag, schema cache keyed by `cluster::database` with stale-response guard, custom hint function, Ctrl/Cmd+Space + auto-popup triggers, silent keyword-only fallback on schema failure)._
 
 ### Manual verification pending (0003 DoD)
 
