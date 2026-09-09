@@ -21,6 +21,7 @@ The browser-based Azure Data Explorer UI can be blocked by corporate network pol
 - **Multi-cluster support** — add, edit, and switch between any number of ADX clusters
 - **Three authentication modes** — Azure CLI, Device Code, and App Registration
 - **Kusto query editor** — CodeMirror-powered editor with syntax highlighting, line numbers, and `Ctrl/⌘+Enter` to run
+- **Kusto IntelliSense** — completion popup (`Ctrl/⌘+Space`, auto-popup while typing and after `.`) with tables, materialized views, columns, keywords, and functions of the selected database
 - **Resource sidebar** — browse tables and materialized views of the selected database; right-click any resource to insert a `"take 100"` starter query
 - **Results table** — sortable columns, type-aware cell formatting, renders up to 5,000 rows
 - **JSON view** — toggle between table and raw JSON output

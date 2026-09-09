@@ -881,3 +881,33 @@ input::placeholder { color: var(--text-muted); }
   background: var(--border);
   margin: 8px 0;
 }
+/* ── Hint Popup (CodeMirror show-hint, spec 0004) ─────────────────────────── */
+/* Dark-theme overrides for the light default of show-hint.min.css */
+.CodeMirror-hints {
+  background: var(--bg-modal);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  z-index: 1500;
+}
+
+.CodeMirror-hint {
+  color: var(--text-primary);
+  padding: 3px 8px;
+  border-radius: 2px;
+}
+
+li.CodeMirror-hint-active {
+  background: var(--accent-muted);
+  color: var(--text-primary);
+}
+
+/* Per-kind coloring (classes applied by kustoHint from hintType) */
+.kusto-hint-table   { color: var(--text-accent); }
+.kusto-hint-view    { color: #bc8cff; }
+.kusto-hint-column  { color: var(--text-success); }
+.kusto-hint-keyword { color: var(--text-warning); }
+.kusto-hint-function{ color: #ffa657; }
+.kusto-hint-type    { color: var(--text-secondary); }

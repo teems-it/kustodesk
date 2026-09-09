@@ -8,6 +8,7 @@ const state = {
   activeDatabase: '',
   resources: null,
   resourcesExpanded: { tables: true, views: true },
+  schema: null,
   results: null,
   activeTab: 'table',
   editingClusterId: null,
@@ -73,6 +74,8 @@ const editor = CodeMirror.fromTextArea($('query-editor'), {
     'Ctrl-Enter': runQuery,
     'Cmd-Enter':  runQuery,
     'Ctrl-/':     (cm) => cm.toggleComment(),
+    'Ctrl-Space': (cm) => cm.showHint({ hint: kustoHint, completeSingle: false }),
+    'Cmd-Space':  (cm) => cm.showHint({ hint: kustoHint, completeSingle: false }),
   },
 });
 editor.setSize('100%', '100%');
@@ -189,14 +192,17 @@ async function loadDatabases(cluster) {
     renderDatabases();
     setStatus(`Connected · ${cluster.name}`, 'ok');
     loadResources();
+    loadSchema();
   } else {
     state.databases = [];
     state.activeDatabase = '';
     state.resources = null;
+    state.schema = null;
     dom.dbSelect.innerHTML = '<option value="">— failed to load —</option>';
     setStatus(`Error: ${res.error}`, 'error');
     showToast('Could not load databases: ' + res.error, 'error', 6000);
     loadResources();
+    loadSchema();
   }
 }
 
@@ -275,6 +281,103 @@ async function loadResources() {
   state.resources = res.resources;
   renderResources();
 }
+
+// ── Schema cache for IntelliSense (spec 0004) ─────────────────────────────
+// Monotonic request id — responses tagged with an outdated id are discarded
+// (same guard discipline as loadResources above).
+let schemaReqId = 0;
+
+function schemaCacheKey(cluster, database) {
+  return `${cluster.url}::${database}`;
+}
+
+async function loadSchema(force = false) {
+  const cluster = state.activeCluster;
+  const database = state.activeDatabase;
+
+  if (!cluster || !database) {
+    state.schema = null;
+    return;
+  }
+
+  const key = schemaCacheKey(cluster, database);
+  // Fetched once per cluster/database and cached; switching re-fetches
+  if (!force && state.schema && state.schema.key === key) return;
+
+  const reqId = ++schemaReqId;
+
+  const res = await window.adxAPI.getSchema({
+    url: cluster.url, database, authMethod: cluster.authMethod, authConfig: cluster.authConfig || {}
+  });
+
+  // Stale-response guard: the selection changed while the request was in flight
+  if (reqId !== schemaReqId) return;
+
+  if (!res.success) {
+    // Silent degradation (spec Decision 4): keywords/functions still complete;
+    // console-level visibility only — no toast spam, editing/querying unaffected
+    state.schema = null;
+    console.warn('[kustodesk] schema fetch failed — IntelliSense falls back to keywords/functions:', res.error);
+    return;
+  }
+
+  // Apply only if this response still matches the current selection
+  if (state.activeCluster === cluster && state.activeDatabase === database) {
+    state.schema = { key, schema: res.schema };
+  }
+}
+
+// ── Kusto hint function (CodeMirror show-hint, spec 0004 Decision 2) ──────
+function kustoHint(cm) {
+  const cur = cm.getCursor();
+
+  // Suppressed inside comments/strings (spec Decision 4) via token check
+  const token = cm.getTokenAt(cur);
+  if (token.type && /comment|string/i.test(token.type)) return null;
+
+  const lineText = cm.getLine(cur.line).slice(0, cur.ch);
+  let prefix = '';
+  let dotTable = null;
+
+  // Dot-completion: `Table.` / `Table.pre` / `["Table Name"].pre`
+  const dot = lineText.match(/(?:\["([^"\]]+)"\]|([A-Za-z0-9_]+))\.([A-Za-z0-9_]*)$/);
+  if (dot) {
+    dotTable = dot[1] || dot[2];
+    prefix = dot[3];
+  } else {
+    prefix = (lineText.match(/[A-Za-z0-9_]+$/) || [''])[0];
+  }
+
+  const schema = state.schema ? state.schema.schema : null;
+  const list = window.KustoHints.buildCompletions(prefix, { code: cm.getValue(), dotTable }, schema)
+    .map((item) => ({ ...item, className: `kusto-hint-${item.hintType}` }));
+  if (!list.length) return null;
+
+  return {
+    list,
+    from: CodeMirror.Pos(cur.line, cur.ch - prefix.length),
+    to: cur,
+  };
+}
+
+// Auto-popup while typing an identifier (≥2 chars) and after `.`
+// (spec Decision 4, Option C); suppressed inside comments/strings.
+editor.on('inputRead', (cm, change) => {
+  if (change.text.length !== 1) return; // multi-char insert (paste, autocorrect)
+  const ch = change.text[0];
+  const cur = cm.getCursor();
+  const token = cm.getTokenAt(cur);
+  if (token.type && /comment|string/i.test(token.type)) return;
+
+  if (ch === '.') {
+    cm.showHint({ hint: kustoHint, completeSingle: false });
+    return;
+  }
+  if (/[A-Za-z0-9_]/.test(ch)) {
+    const word = (cm.getLine(cur.line).slice(0, cur.ch).match(/[A-Za-z0-9_]+$/) || [''])[0];
+    if (word.length >= 2) cm.showHint({ hint: kustoHint, completeSingle: false });
+  }
+});
 
 // ── Resource context menu ──────────────────────────────────────────────────
 let contextTarget = null;
@@ -598,6 +701,7 @@ dom.clusterList.addEventListener('click', async (e) => {
         state.activeCluster = null;
         state.databases = [];
         state.resources = null;
+        state.schema = null;
         renderDatabases();
         loadResources();
         setStatus('No cluster selected', '');
@@ -618,7 +722,7 @@ dom.historyList.addEventListener('click', (e) => {
 });
 
 // Database select
-dom.dbSelect.addEventListener('change', (e) => { state.activeDatabase = e.target.value; loadResources(); });
+dom.dbSelect.addEventListener('change', (e) => { state.activeDatabase = e.target.value; loadResources(); loadSchema(); });
 
 // Refresh databases
 dom.btnRefreshDbs.addEventListener('click', () => {
@@ -627,7 +731,10 @@ dom.btnRefreshDbs.addEventListener('click', () => {
 
 // Refresh resources
 dom.btnRefreshResources.addEventListener('click', () => {
-  if (state.activeCluster) loadResources();
+  if (state.activeCluster) {
+    loadResources();
+    loadSchema(true); // forced refetch — bypasses the schema cache
+  }
 });
 
 // Resource tree interactions (delegation)
