@@ -33,6 +33,17 @@ describe('app smoke launch', () => {
       await win.waitForLoadState('domcontentloaded');
 
       expect(win.url()).toContain('index.html');
+
+      // Regression guard (0004): the hint-engine module must be loaded before
+      // app.js — a missing <script> tag makes window.KustoHints undefined and
+      // every completion invocation (Ctrl/⌘+Space and auto-popup) throws.
+      const hintGlobals = await win.evaluate(() => ({
+        hasKustoHints: typeof window.KustoHints?.buildCompletions === 'function',
+        hasShowHint: typeof CodeMirror?.showHint === 'function',
+      }));
+      expect(hintGlobals.hasKustoHints).toBe(true);
+      expect(hintGlobals.hasShowHint).toBe(true);
+
       // the app process should still be alive (no fatal crash on startup)
       expect(app.process().kill()).toBe(true);
     } finally {
