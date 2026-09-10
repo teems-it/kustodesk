@@ -9,7 +9,7 @@
 
 <!-- The single task currently being worked on. Only ONE at a time. -->
 
-- **0004 - Kusto IntelliSense** (spec: `.ai/specs/0004_kusto-intellisense.md`, IN PROGRESS) - backend done (getSchema + kusto:get-schema IPC + preload, commit 14d3aa3), pure hint-engine module done (src/renderer/kusto-hints.js + 15 unit tests, commit 2347cd9), editor integration done (show-hint.min.js script tag, schema cache + monotonic stale-response guard in app.js, custom kustoHint fn with dot-completion, Ctrl/Cmd+Space + auto-popup, comment/string suppression, dark popup theme, README bullet — commit c84d35f; 94 unit+integration tests + E2E green). Next: manual verification of spec scenarios 1-6 with npm start, then spec -> DONE.
+- **0004 - Kusto IntelliSense** (spec: `.ai/specs/0004_kusto-intellisense.md`, IN PROGRESS) - backend done (getSchema + kusto:get-schema IPC + preload, commit 14d3aa3), pure hint-engine module done (src/renderer/kusto-hints.js + 15 unit tests, commit 2347cd9), editor integration done (show-hint.min.js script tag, schema cache + monotonic stale-response guard in app.js, custom kustoHint fn with dot-completion, Ctrl/Cmd+Space + auto-popup, comment/string suppression, dark popup theme, README bullet — commit c84d35f; 94 unit+integration tests + E2E green). **Bugfix 8a5c780:** manual verification found scenarios 1-3 dead — the kusto-hints.js script tag was missing from index.html so window.KustoHints was undefined and kustoHint() threw on every invocation; script tag added + E2E smoke regression guard (asserts KustoHints/showHint in the loaded renderer). Next: re-run manual verification of spec scenarios 1-6 with npm start, then spec -> DONE.
 
 ## Todo
 
