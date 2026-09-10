@@ -98,8 +98,11 @@ function collectIdentifiers(code) {
 // keywords - optional vocabulary override { keywords, functions, types };
 //            defaults to the curated lists above
 // Ranking (spec 0004, Decision 3): dot-scoped table columns only; otherwise
-// tables + MVs, then columns of query-referenced tables (boosted), then all
-// DB columns (fallback), then keywords/functions/types - deduped and capped.
+// tables + MVs, then columns of query-referenced resources only when any are
+// resolvable (Kusto identifiers are case-insensitive, so lookups match
+// case-insensitively - suggesting another resource's column would build a
+// query that fails with SEM0100), all-DB columns only when the query
+// references nothing, then keywords/functions/types - deduped and capped.
 function buildCompletions(prefix, context, schema, keywords) {
   const vocab = keywords || { keywords: KEYWORDS, functions: FUNCTIONS, types: TYPES };
   const tables = (schema && schema.tables) || {};
@@ -107,9 +110,19 @@ function buildCompletions(prefix, context, schema, keywords) {
   context = context || {};
   const col = (name) => ({ text: name, displayText: name, hintType: HINT_TYPES.COLUMN });
 
+  // Kusto identifiers are case-insensitive - resolve a resource name
+  // against tables and materialized views regardless of case.
+  const findResource = (name) => {
+    const key = String(name || "").toLowerCase();
+    if (!key) return null;
+    for (const [t, cols] of Object.entries(tables)) if (t.toLowerCase() === key) return cols;
+    for (const [v, cols] of Object.entries(views)) if (v.toLowerCase() === key) return cols;
+    return null;
+  };
+
   // Dot-completion scoped to a resolvable table/MV
   if (context.dotTable) {
-    const cols = tables[context.dotTable] || views[context.dotTable];
+    const cols = findResource(context.dotTable);
     if (cols) return prefixMatch(cols.map(col), prefix);
     // unresolvable - fall through to the general path
   }
@@ -130,21 +143,26 @@ function buildCompletions(prefix, context, schema, keywords) {
   addAll(prefixMatch(Object.keys(tables), prefix).map((n) => ({ text: n, displayText: n, hintType: HINT_TYPES.TABLE })));
   addAll(prefixMatch(Object.keys(views), prefix).map((n) => ({ text: n, displayText: n, hintType: HINT_TYPES.VIEW })));
 
-  // 2) columns: query-referenced tables first (boosted), then all DB columns
+  // 2) columns: of query-referenced resources when there are any (columns
+  //    from other resources would yield SEM0100 when picked), otherwise all
+  //    DB columns (fresh-query fallback)
   if (out.length < MAX_COMPLETIONS) {
-    const boosted = [];
-    const fallback = [];
+    const referenced = [];
     const seenCols = new Set();
     for (const name of collectIdentifiers(context.code)) {
-      const cols = tables[name] || views[name];
+      const cols = findResource(name);
       if (!cols) continue;
-      for (const c of cols) if (!seenCols.has(c)) { seenCols.add(c); boosted.push(c); }
+      for (const c of cols) if (!seenCols.has(c)) { seenCols.add(c); referenced.push(c); }
     }
-    for (const cols of [...Object.values(tables), ...Object.values(views)]) {
-      for (const c of cols) if (!seenCols.has(c)) { seenCols.add(c); fallback.push(c); }
+    if (referenced.length) {
+      addAll(prefixMatch(referenced, prefix).map(col));
+    } else {
+      const fallback = [];
+      for (const cols of [...Object.values(tables), ...Object.values(views)]) {
+        for (const c of cols) if (!seenCols.has(c)) { seenCols.add(c); fallback.push(c); }
+      }
+      addAll(prefixMatch(fallback, prefix).map(col));
     }
-    addAll(prefixMatch(boosted, prefix).map(col));
-    addAll(prefixMatch(fallback, prefix).map(col));
   }
 
   // 3) curated vocabulary

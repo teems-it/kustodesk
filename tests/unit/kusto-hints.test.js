@@ -82,17 +82,38 @@ describe('buildCompletions', () => {
     expect(out.every((c) => c.hintType === 'column')).toBe(true);
   });
 
+  it('resolves the dotTable case-insensitively (Kusto identifiers are case-insensitive)', () => {
+    const out = buildCompletions('ev', { code: 'stormevents', dotTable: 'stormevents' }, SCHEMA);
+    expect(out.map((c) => c.text)).toEqual(['EventId', 'EventType']);
+    expect(out.every((c) => c.hintType === 'column')).toBe(true);
+  });
+
   it('falls back to the general path when the dotTable is unresolvable', () => {
     const out = buildCompletions('s', { code: 'StormEvents', dotTable: 'Nope' }, SCHEMA);
     expect(out.some((c) => c.hintType === 'table')).toBe(true);
     expect(out.some((c) => c.hintType === 'column')).toBe(true);
   });
 
-  it('boosts columns of query-referenced tables over all-DB columns', () => {
-    const out = buildCompletions('t', { code: 'StormEvents' }, SCHEMA);
+  it('suggests only columns of query-referenced resources when references resolve', () => {
+    // StormEvents is referenced: AvgTemp (MV-only) and Timestamp (TempReadings)
+    // must NOT be suggested - picking them would fail with SEM0100
+    const out = buildCompletions('t', { code: 'StormEvents | project ' }, SCHEMA);
+    const texts = out.map((c) => c.text);
+    expect(texts).toContain('Tag'); // StormEvents column
+    expect(texts).not.toContain('Timestamp'); // TempReadings column
+    expect(texts).not.toContain('AvgTemp'); // MV-only column
+  });
+
+  it('resolves referenced resources case-insensitively for column scoping', () => {
+    const out = buildCompletions('tag', { code: 'stormevents | project ' }, SCHEMA);
+    expect(out.map((c) => c.text)).toEqual(['Tag']);
+  });
+
+  it('falls back to all-DB columns when the query references nothing (fresh query)', () => {
+    const out = buildCompletions('t', emptyCtx, SCHEMA);
     const cols = out.filter((c) => c.hintType === 'column').map((c) => c.text);
-    expect(cols[0]).toBe('Tag'); // StormEvents column, boosted
-    expect(cols.indexOf('Timestamp')).toBeGreaterThan(cols.indexOf('Tag')); // TempReadings, fallback
+    expect(cols).toContain('Tag'); // StormEvents column
+    expect(cols).toContain('Timestamp'); // TempReadings column
   });
 
   it('keeps working with no schema at all (keywords/functions only)', () => {
