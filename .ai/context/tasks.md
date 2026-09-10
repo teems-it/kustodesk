@@ -15,7 +15,18 @@
 
 <!-- Upcoming tasks, ordered by priority. -->
 
-- _Empty_ (candidates: fold getResources + getSchema behind one IPC channel — spec 0004 Decision 1 trade-off; packaged-macOS Gatekeeper treatment; Azure support ticket for the ANOVEDA PROD SYN0002 anomaly)
+- **0005 — E2E tests with mocked ADX** (spec: `.ai/specs/0005_e2e-tests.md`, APPROVED) — ordered so each task is independently committable:
+  1. [ ] **Prep: SDK REST contract verification + mock-server core** — read `node_modules/azure-kusto-data` source to pin the exact request paths (`/v2/rest/query`, `/v1/rest/mgmt`), request bodies, and response envelopes; build `tests/e2e/helpers/mock-kusto-server.js` (dispatch on command text, received-command recorder, bearer-ignored) with unit tests pinning payload fidelity against the real `KustoResponseDataSetV1`/`V2` deserializers (generator `rows()` — never index it)
+  2. [ ] **Prep: app test seams** — `KUSTODESK_E2E_TOKEN` static-token provider in `_buildKcsb` (`src/main/kusto-client.js`) + `KUSTODESK_E2E_EXPORT_DIR` in the `export:csv` handler (`src/main/ipc-handlers.js`); unit tests proving both are no-ops when unset and all three real auth modes are untouched
+  3. [ ] **Fixtures: single source of truth** — `tests/e2e/fixtures/kusto-fixtures.js`: cluster definitions, `StormEvents`-style table + materialized view + columns, query result rows, `.show tables`/`.show materialized views` rows, schema-JSON node, error payloads; wire the mock server's default dataset to the fixtures
+  4. [ ] **Wiring: launch helper + smoke extension** — `tests/e2e/helpers/launch-app.js` (mock server + isolated data dir + `KUSTODESK_E2E_TOKEN` + cleanup, `it.skipIf(noDisplay)` pattern); extend `smoke.test.js` to also boot the app against the mock — proves the full wiring before any scenario exists
+  5. [ ] **Scenarios: cluster lifecycle** — add/edit/delete cluster + `clusters.json` persistence + history cascade, test-connection success/failure, database dropdown from mock (spec scenarios 1–3)
+  6. [ ] **Scenarios: query execution** — results table (row count, cells), sorting, JSON tab, history entry + reload on click, error surfacing + recovery (spec scenarios 5–6)
+  7. [ ] **Scenarios: resources + IntelliSense** — sidebar tables/MVs from mock, right-click `["Name"] | take 100` insert, completions from mocked schema incl. `Table.` columns (spec scenarios 4, 7)
+  8. [ ] **Scenarios: CSV export** — export writes a file whose contents equal `toCsv(columns, rows)` for the fixture rows (spec scenario 8)
+  9. [ ] **Wrap-up** — headless verification (`xvfb-run -a npm run test:e2e` locally, same as CI), README testing section (mocked E2E + local preview), spec → DONE, `/save-progress`
+
+  (After 0005, feature candidates remain: fold `getResources` + `getSchema` behind one IPC channel; packaged-macOS Gatekeeper treatment; Azure support ticket for the ANOVEDA PROD SYN0002 anomaly)
 
 ## Done
 

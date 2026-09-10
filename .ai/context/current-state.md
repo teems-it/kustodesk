@@ -8,7 +8,7 @@
 ## Active Feature
 
 <!-- Name of the feature currently being worked on, or "None" -->
-_Active feature: None — 0004 Kusto IntelliSense is DONE (all spec scenarios + spot-checks manually verified; spec -> DONE). Next feature not yet selected._
+_Active feature: 0005 E2E tests with mocked ADX — spec finalized & APPROVED (8d1cca5), work split into 9 tasks (tasks.md Todo). Implementation not started; Task 1 is next._
 
 ## Status
 
@@ -24,6 +24,7 @@ _Active feature: None — 0004 Kusto IntelliSense is DONE (all spec scenarios + 
 | _0004 backend_ | Done: getSchema + kusto:get-schema IPC + preload (14d3aa3) | - |
 | _0004 hint engine_ | Done: kusto-hints.js pure module + 15 unit tests (2347cd9) | - |
 | _0004 IntelliSense_ | **DONE** — backend (14d3aa3), hint engine (2347cd9), editor integration (c84d35f); verification bugfixes 8a5c780 + a96b78a; spec → DONE | 97 unit+integration + E2E green |
+| _0005 planning_ | Done — spec finalized & APPROVED (8d1cca5); 9-task breakdown in tasks.md Todo | Implementation not started; Task 1 = SDK contract verification + mock-server core |
 
 ## Known Issues
 
@@ -37,7 +38,7 @@ _Active feature: None — 0004 Kusto IntelliSense is DONE (all spec scenarios + 
 
 <!-- The single next action to take. Must be concrete and actionable. -->
 
-_0004 is DONE — pick the next feature. Create a new spec in `.ai/specs/` and commit it as DRAFT. Candidate directions from Todo: fold `getResources` + `getSchema` behind one IPC channel (spec 0004 Decision 1 trade-off — avoids the double schema-JSON fetch on database selection); stored-function/external-table completion (out of scope in 0004); query formatting; packaged-macOS Gatekeeper treatment; Azure support ticket for the ANOVEDA PROD SYN0002 anomaly._
+_0005 E2E tests — start Task 1 (see tasks.md Todo): verify the `azure-kusto-data` v6 REST contract from `node_modules` source (request paths, bodies, response envelopes), then build the mock-server core `tests/e2e/helpers/mock-kusto-server.js` with unit tests pinning payload fidelity against the real `KustoResponseDataSetV1`/`V2` deserializers. Spec: `.ai/specs/0005_e2e-tests.md` (APPROVED)._
 
 ### Manual verification pending (0003 DoD)
 

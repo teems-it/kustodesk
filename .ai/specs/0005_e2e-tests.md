@@ -1,6 +1,6 @@
 # Spec: E2E Tests for Kustodesk
 
-> **Status:** DRAFT  <!-- DRAFT → APPROVED → IN PROGRESS → DONE -->
+> **Status:** APPROVED  <!-- DRAFT → APPROVED → IN PROGRESS → DONE -->
 > **Created:** 2026-09-10
 > **Owner:** @gpasnik
 
