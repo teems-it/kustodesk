@@ -23,7 +23,7 @@ _Active feature: 0004 — Kusto IntelliSense (spec created at `.ai/specs/0004_ku
 | _Docs_ | README dev/testing section + macOS Gatekeeper note + resource sidebar feature bullet. |
 | _0004 backend_ | Done: getSchema + kusto:get-schema IPC + preload (14d3aa3) | - |
 | _0004 hint engine_ | Done: kusto-hints.js pure module + 15 unit tests (2347cd9) | - |
-| _0004 editor integration_ | Done + bugfix 8a5c780: kusto-hints.js script tag was missing — popup never showed; E2E regression guard added | Manual re-verification pending |
+| _0004 editor integration_ | Done + bugfixes 8a5c780 (missing script tag), a96b78a (column scoping + case-insensitive resolution); 97 tests + E2E green | Manual re-verification of scenario 3 + spot-checks pending |
 
 ## Known Issues
 
@@ -38,7 +38,7 @@ _Active feature: 0004 — Kusto IntelliSense (spec created at `.ai/specs/0004_ku
 
 <!-- The single next action to take. Must be concrete and actionable. -->
 
-_Bugfix 8a5c780 landed: the kusto-hints.js <script> tag was missing from index.html, so window.KustoHints was undefined and every completion invocation (Ctrl/Cmd+Space and auto-popup) threw — scenarios 1-3 showed no popup at all. Script tag added before app.js; E2E smoke now asserts KustoHints/showHint exist in the loaded renderer. 94 unit+integration + E2E green. Re-run manual verification of spec scenarios 1-6 with npm start (real cluster): 1) keyword completion without schema (Ctrl/Cmd+Space), 2) table/MV completion above keywords, 3) `Table.` dot-completion scoped to columns, 4) column fallback on fresh query, 5) db switch discards in-flight stale schema, 6) silent keyword-only degradation on schema failure (no toast spam). Also spot-check: auto-popup suppression inside comments/strings, Escape/click-away dismissal, refresh button forces schema refetch. Then spec 0004 -> DONE._
+_Second bugfix a96b78a landed: scenario 3 suggested columns of other tables/MVs (SEM0100) — resource lookups were exact-match (Kusto is case-insensitive, so `stormevents.` fell through to all-DB columns) and the general path always appended all-DB columns. Now: case-insensitive findResource(); when the query references resolvable resources, only their columns are suggested; all-DB fallback only for fresh queries (scenario 4 preserved). 97 unit+integration + E2E green. Re-verify scenario 3 (dot-completion and bare-prefix after a referenced table must suggest only that resource's columns, incl. a lowercase `stormevents.` variant) + spot-checks (comments/strings suppression, Escape/click-away, refresh refetch); scenario 6 (silent degradation) is hard to trigger manually — the console.warn in app.js line ~320 shows the fallback fires. Then spec 0004 -> DONE._
 
 ### Manual verification pending (0003 DoD)
 
