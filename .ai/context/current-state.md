@@ -8,7 +8,7 @@
 ## Active Feature
 
 <!-- Name of the feature currently being worked on, or "None" -->
-_Active feature: 0004 — Kusto IntelliSense (spec created at `.ai/specs/0004_kusto-intellisense.md`, IN PROGRESS; backend done (14d3aa3), hint engine done (2347cd9), editor integration done (c84d35f); manual verification + spec -> DONE next._
+_Active feature: None — 0004 Kusto IntelliSense is DONE (all spec scenarios + spot-checks manually verified; spec -> DONE). Next feature not yet selected._
 
 ## Status
 
@@ -23,22 +23,21 @@ _Active feature: 0004 — Kusto IntelliSense (spec created at `.ai/specs/0004_ku
 | _Docs_ | README dev/testing section + macOS Gatekeeper note + resource sidebar feature bullet. |
 | _0004 backend_ | Done: getSchema + kusto:get-schema IPC + preload (14d3aa3) | - |
 | _0004 hint engine_ | Done: kusto-hints.js pure module + 15 unit tests (2347cd9) | - |
-| _0004 editor integration_ | Done + bugfixes 8a5c780 (missing script tag), a96b78a (column scoping + case-insensitive resolution); 97 tests + E2E green | Manual re-verification of scenario 3 + spot-checks pending |
+| _0004 IntelliSense_ | **DONE** — backend (14d3aa3), hint engine (2347cd9), editor integration (c84d35f); verification bugfixes 8a5c780 + a96b78a; spec → DONE | 97 unit+integration + E2E green |
 
 ## Known Issues
 
 <!-- List any known bugs, blockers, or technical debt. Remove this section if empty. -->
 
-- There is no "intelli sense" features supporting kusto syntax
 - MacOS recognizes the **packaged** app as not trusted software and denies the installation (dev binary is fixed by the postinstall ad-hoc re-sign; packaged app may need equivalent treatment)
-- Renderer (`src/renderer/app.js`) has no automated tests (DOM-heavy, no bundler — candidate follow-up)
+- Renderer (`src/renderer/app.js`) has no automated tests (DOM-heavy, no bundler — candidate follow-up; partially mitigated by the E2E in-renderer KustoHints/showHint regression guard added in 8a5c780)
 - ANOVEDA PROD cluster rejects `.show materialized views` with a parser-level SYN0002 error although MVs exist (confirmed via schema JSON); worked around in `getResources` via the schema-JSON fallback — an Azure support ticket is recommended
 
 ## Next Step
 
 <!-- The single next action to take. Must be concrete and actionable. -->
 
-_Second bugfix a96b78a landed: scenario 3 suggested columns of other tables/MVs (SEM0100) — resource lookups were exact-match (Kusto is case-insensitive, so `stormevents.` fell through to all-DB columns) and the general path always appended all-DB columns. Now: case-insensitive findResource(); when the query references resolvable resources, only their columns are suggested; all-DB fallback only for fresh queries (scenario 4 preserved). 97 unit+integration + E2E green. Re-verify scenario 3 (dot-completion and bare-prefix after a referenced table must suggest only that resource's columns, incl. a lowercase `stormevents.` variant) + spot-checks (comments/strings suppression, Escape/click-away, refresh refetch); scenario 6 (silent degradation) is hard to trigger manually — the console.warn in app.js line ~320 shows the fallback fires. Then spec 0004 -> DONE._
+_0004 is DONE — pick the next feature. Create a new spec in `.ai/specs/` and commit it as DRAFT. Candidate directions from Todo: fold `getResources` + `getSchema` behind one IPC channel (spec 0004 Decision 1 trade-off — avoids the double schema-JSON fetch on database selection); stored-function/external-table completion (out of scope in 0004); query formatting; packaged-macOS Gatekeeper treatment; Azure support ticket for the ANOVEDA PROD SYN0002 anomaly._
 
 ### Manual verification pending (0003 DoD)
 

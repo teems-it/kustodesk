@@ -1,6 +1,6 @@
 # Spec: Kusto Intellisense
 
-> **Status:** IN PROGRESS  <!-- DRAFT → APPROVED → IN PROGRESS → DONE -->
+> **Status:** DONE  <!-- DRAFT → APPROVED → IN PROGRESS → DONE -->
 > **Created:** 2026-09-03
 > **Owner:** @gpasnik
 
@@ -125,16 +125,22 @@ For each non-trivial decision point, document the options considered, the choice
 
 ## Definition of Done (DoD)
 
-- [ ] Typing `Ctrl/⌘+Space` in the editor shows a completion popup with tables, materialized views, columns, keywords, and functions of the selected database
-- [ ] Typing an identifier auto-opens the popup; `.` after a table name offers that table's columns; suggestions filter by the typed prefix
-- [ ] Schema is fetched once per cluster/database and cached; switching cluster/database re-fetches; stale responses never populate the wrong schema
-- [ ] With no database selected, or on schema-fetch failure, editing/querying is unaffected and completion degrades to keywords/functions only — no crash, no toast spam
-- [ ] Unit tests written and passing: `getSchema` schema-JSON parsing (incl. the real deserializer + generator `rows()` pattern and defensive column-shape normalization), empty-db short-circuit, error propagation; `kusto-hints.js` pure helpers (identifier collection, prefix filtering, ranking/capping)
-- [ ] Integration tests written and passing: `kusto:get-schema` success/error envelope, device-code passthrough; channel registered in `ALL_CHANNELS`
-- [ ] No regressions in existing tests (65 unit/integration + E2E smoke stay green)
-- [ ] Code follows existing project conventions (CJS, injected deps, vanilla renderer JS, no bundler; UMD shim pattern for the new renderer module)
-- [ ] Relevant `decisions.md` entries added (schema-JSON source for completion; custom hint engine over `sql-hint`)
-- [ ] Docs updated (README features list; spec → DONE after verification)
+- [x] Typing `Ctrl/⌘+Space` in the editor shows a completion popup with tables, materialized views, columns, keywords, and functions of the selected database
+- [x] Typing an identifier auto-opens the popup; `.` after a table name offers that table's columns; suggestions filter by the typed prefix
+- [x] Schema is fetched once per cluster/database and cached; switching cluster/database re-fetches; stale responses never populate the wrong schema
+- [x] With no database selected, or on schema-fetch failure, editing/querying is unaffected and completion degrades to keywords/functions only — no crash, no toast spam
+- [x] Unit tests written and passing: `getSchema` schema-JSON parsing (incl. the real deserializer + generator `rows()` pattern and defensive column-shape normalization), empty-db short-circuit, error propagation; `kusto-hints.js` pure helpers (identifier collection, prefix filtering, ranking/capping)
+- [x] Integration tests written and passing: `kusto:get-schema` success/error envelope, device-code passthrough; channel registered in `ALL_CHANNELS`
+- [x] No regressions in existing tests (97 unit/integration + E2E smoke green; E2E extended with an in-renderer KustoHints/showHint regression guard)
+- [x] Code follows existing project conventions (CJS, injected deps, vanilla renderer JS, no bundler; UMD shim pattern for the new renderer module)
+- [x] Relevant `decisions.md` entries added (schema-JSON source for completion; custom hint engine over `sql-hint`)
+- [x] Docs updated (README features list; spec → DONE after verification)
+
+> **Verification note:** manual verification against a real cluster surfaced two bugs, both fixed during verification —
+> missing `kusto-hints.js` script tag (8a5c780, popup never appeared; E2E regression guard added) and cross-resource
+> column suggestions causing SEM0100 (a96b78a: case-insensitive resource resolution + referenced-resource-only column
+> scoping). All 6 spec scenarios + spot-checks verified passing. Scenario 6 (silent degradation) verified by unit test
+> (`keeps working with no schema at all`) plus console-warn fallback path.
 
 ---
 

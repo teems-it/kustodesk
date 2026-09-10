@@ -8,6 +8,22 @@
 
 <!-- Add new session entries below, newest first. -->
 
+## 2026-09-10 — Session Summary
+
+**Commits:** `8a5c780`, `8de54a0`, `a96b78a`, `738e8c5` (baseline `103e681`)
+
+**What was done:**
+- `8a5c780` — **bugfix (manual verification round 1):** scenarios 1-3 showed no popup at all — the `kusto-hints.js` script tag was missing from index.html, so `window.KustoHints` was undefined and `kustoHint()` threw on every invocation (Ctrl/⌘+Space and auto-popup). Script tag added before app.js; E2E smoke extended with an in-renderer regression guard asserting `KustoHints.buildCompletions` and `CodeMirror.showHint` exist in the loaded renderer
+- `a96b78a` — **bugfix (manual verification round 2):** scenario 3 suggested columns that don't exist on the queried table (MV-only column suggested for a table query → Kusto SEM0100). Two root causes fixed in `buildCompletions`: exact-match resource lookups (Kusto identifiers are case-insensitive — new case-insensitive `findResource()` helper) and the general path always appending all-DB columns (now: referenced-resource-only columns when references resolve; all-DB fallback only on fresh queries, scenario 4 preserved). Unit tests updated/added — 97 total green
+- `738e8c5` + `8de54a0` — PCS syncs after each bugfix
+- Spec 0004 → **DONE**: all 6 spec scenarios + spot-checks (comment/string suppression, Escape/click-away, refresh refetch) verified manually with `npm start` against a real cluster; scenario 6 verified by unit test + console-warn fallback; DoD fully checked off; tasks.md 0004 → Done
+
+**Status after session:**
+- 0004 Kusto IntelliSense DONE. 97 unit+integration tests + 1 E2E smoke all green; working tree clean; `main` pushed to origin (CI green on `738e8c5`).
+
+**Next:**
+- Pick the next feature and write its spec as DRAFT. Candidates: fold `getResources` + `getSchema` behind one IPC channel (double schema-JSON fetch trade-off from 0004 Decision 1); stored-function/external-table completion; packaged-macOS Gatekeeper treatment; Azure support ticket for the ANOVEDA PROD SYN0002 anomaly.
+
 ## 2026-09-03 — Session Summary
 
 **Commits:** `94042db`, `3390991`, `1224095`, `a14b003`, `9f2e9e5`, `25f7348`, `ad8826b`, `72f97ab`, `f9b63f6`, `66c589c`

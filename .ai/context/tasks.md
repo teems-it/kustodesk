@@ -9,17 +9,19 @@
 
 <!-- The single task currently being worked on. Only ONE at a time. -->
 
-- **0004 - Kusto IntelliSense** (spec: `.ai/specs/0004_kusto-intellisense.md`, IN PROGRESS) - backend done (14d3aa3), hint engine done (2347cd9), editor integration done (c84d35f). Manual verification round 1 found scenarios 1-3 dead — **bugfix 8a5c780:** kusto-hints.js script tag missing from index.html, window.KustoHints undefined; tag added + E2E regression guard. Round 2: scenarios 1-2, 4, 5 pass; scenario 3 suggested non-existent columns (SEM0100) — **bugfix a96b78a:** case-insensitive findResource() (Kusto identifiers are case-insensitive) + referenced-resource-only column scoping (all-DB fallback only on fresh queries); 97 unit+integration + E2E green. Next: re-verify scenario 3 + spot-checks with npm start, then spec -> DONE.
+- _Empty_
 
 ## Todo
 
 <!-- Upcoming tasks, ordered by priority. -->
 
-- _Empty_
+- _Empty_ (candidates: fold getResources + getSchema behind one IPC channel — spec 0004 Decision 1 trade-off; packaged-macOS Gatekeeper treatment; Azure support ticket for the ANOVEDA PROD SYN0002 anomaly)
 
 ## Done
 
 <!-- Completed tasks. Keep a running history. -->
+
+- **0004 — Kusto IntelliSense** (spec: `.ai/specs/0004_kusto-intellisense.md`) — `getSchema()` (single `.show database schema as json` call, defensive column normalizer, empty-db short-circuit) + `kusto:get-schema` IPC + `adxAPI.getSchema()` preload (14d3aa3); pure hint engine `src/renderer/kusto-hints.js` (UMD shim; curated vocabulary, prefixMatch, collectIdentifiers, buildCompletions) + unit tests (2347cd9); editor integration (show-hint.min.js, schema cache keyed `url::database` + stale guard, custom kustoHint with dot-completion, Ctrl/⌘+Space + auto-popup, comment/string suppression, dark popup theme, README bullet — c84d35f). Manual verification surfaced two bugs, fixed during verification: missing script tag (8a5c780 + E2E regression guard) and cross-resource column suggestions → SEM0100 (a96b78a: case-insensitive `findResource()` + referenced-resource-only column scoping). 97 unit+integration + E2E green; all 6 spec scenarios + spot-checks verified.
 
 - **0003 — Resource listing** (spec: `.ai/specs/0003_resource-listing.md`) — `KustoClientManager.getResources()` (`.show tables` / `.show materialized views` via `executeMgmt`, client-cache reuse, empty-db short-circuit); `kusto:get-resources` IPC channel + `adxAPI.getResources()` preload bridge; "Resources" sidebar section with collapsible Tables / Materialized Views groups, loading/error/empty states, stale-response guard, refresh button; right-click context menu inserting `["Name"] | take 100` at the cursor. 8 new tests (5 unit, 3 integration) — 57 total green.
 
