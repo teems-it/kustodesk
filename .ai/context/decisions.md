@@ -25,6 +25,22 @@ Each entry follows this format:
 
 <!-- Add new decisions below, newest first. -->
 
+## 2026-09-10 — E2E mocks ADX with a local HTTP server, not main-process patching
+
+**Context:** Spec 0005 requires every implemented feature covered by E2E tests against a mocked ADX. Options: a local HTTP server impersonating the Kusto REST API, or monkey-patching `KustoClientManager` in the main process via `app.evaluate()`.
+
+**Decision:** A local `http.Server` impersonates the Kusto REST API (`POST /v2/rest/query`, `POST /v1/rest/mgmt`), dispatching on the command text against shared fixtures (`tests/e2e/fixtures/kusto-fixtures.js`) and recording every received command for assertions. The app connects to `http://127.0.0.1:<port>` like a real cluster. Harness stays Vitest + `playwright-core` `_electron` (Decision 4 in the spec) — no Playwright test-runner migration.
+
+**Consequences:** The full stack is exercised (SDK deserializer, request paths, IPC, renderer) — the exact layer where 0003 bugfix #3's generator-`rows()` mock-fidelity gap hid. Trade-off: mock responses must be validated against the real `KustoResponseDataSetV1`/`V2` deserializers, and two tiny test-only seams enter production code (see next entry).
+
+## 2026-09-10 — Test-only env-var seams for E2E auth and CSV export
+
+**Context:** The mocked ADX server issues no AAD tokens, so the app's real auth modes (`az` shell-out, device code, app registration) cannot authenticate to it; and the native save dialog cannot be driven by Playwright, blocking E2E coverage of CSV export.
+
+**Decision:** Two env-var-guarded seams, following the established `KUSTODESK_DATA_DIR` pattern: (1) when `KUSTODESK_E2E_TOKEN` is set, `_buildKcsb` uses `withTokenProvider(url, async () => token)` regardless of auth method; (2) when `KUSTODESK_E2E_EXPORT_DIR` is set, the `export:csv` handler skips `dialog.showSaveDialog` and writes to that dir, returning the same `{ success, filePath }` envelope. Both are documented as test-only and unit-tested to be no-ops when unset.
+
+**Consequences:** E2E runs with zero external dependencies (no `az`, no microsoftonline.com). Trade-offs: OAuth round-trips themselves remain untested by E2E (their IPC surface stays covered by integration tests), and production code carries two guarded test-only branches.
+
 ## 2026-09-08 - Completion schema comes from one `.show database schema as json` call
 
 **Context:** The 0004 hint engine needs table, materialized-view, and column names per database. Alternatives: one schema-JSON mgmt call, per-resource `.show table <name> cslschema` fetches, or extending `getResources()` to also return columns (spec 0004, Decision 1).
