@@ -25,6 +25,14 @@ Each entry follows this format:
 
 <!-- Add new decisions below, newest first. -->
 
+## 2026-09-17 — E2E seams resolve auth inside `_buildKcsb` and write deterministic files
+
+**Context:** Implementing the 0005 test-only seams (`KUSTODESK_E2E_TOKEN`, `KUSTODESK_E2E_EXPORT_DIR`) raised two placement questions: where the token branch belongs, and how the E2E export filename is chosen.
+
+**Decision:** (1) The `KUSTODESK_E2E_TOKEN` branch lives at the top of `_buildKcsb` — it returns `withTokenProvider(url, async () => token)` before the auth-method switch, so it covers all three real modes uniformly and there is exactly one guarded branch instead of three. (2) The `KUSTODESK_E2E_EXPORT_DIR` branch writes `adx-results-<Date.now()>-<random>.csv` into the dir (unique per invocation, no collisions across scenarios) and returns the same `{ success, filePath }` envelope as the dialog path — the renderer code path is identical either way.
+
+**Consequences:** E2E runs with zero external dependencies and asserts real file contents. Trade-off: production code carries two env-guarded branches (documented test-only); OAuth internals and the native dialog remain covered by unit/integration tests only.
+
 ## 2026-09-10 — E2E mocks ADX with a local HTTP server, not main-process patching
 
 **Context:** Spec 0005 requires every implemented feature covered by E2E tests against a mocked ADX. Options: a local HTTP server impersonating the Kusto REST API, or monkey-patching `KustoClientManager` in the main process via `app.evaluate()`.

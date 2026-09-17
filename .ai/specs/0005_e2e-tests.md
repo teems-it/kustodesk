@@ -1,6 +1,6 @@
 # Spec: E2E Tests for Kustodesk
 
-> **Status:** APPROVED  <!-- DRAFT → APPROVED → IN PROGRESS → DONE -->
+> **Status:** IN PROGRESS  <!-- DRAFT → APPROVED → IN PROGRESS → DONE -->
 > **Created:** 2026-09-10
 > **Owner:** @gpasnik
 
@@ -131,12 +131,12 @@ It gives the possibility to automatically verify whether the application feature
 
 ## Definition of Done (DoD)
 
-- [ ] Mock Kusto server serves fixtures for query + mgmt endpoints and records received commands
+- [x] Mock Kusto server serves fixtures for query + mgmt endpoints and records received commands
 - [ ] Every implemented feature has at least one E2E scenario: cluster CRUD, test connection, database selection, resources sidebar + context menu, query execution (results table, JSON view, sorting), query error surfacing, query history, IntelliSense completions, CSV export
 - [ ] Fixture data is the single source of truth for both mock responses and assertions
 - [ ] Full run is headless-safe (passes under `xvfb-run -a npm run test:e2e` locally, exactly as CI runs it)
 - [ ] Local preview run opens a visible app window (documented in README)
-- [ ] Test-only seams (`KUSTODESK_E2E_TOKEN`, `KUSTODESK_E2E_EXPORT_DIR`) are env-guarded and change nothing when unset (unit tests prove it)
+- [x] Test-only seams (`KUSTODESK_E2E_TOKEN`, `KUSTODESK_E2E_EXPORT_DIR`) are env-guarded and change nothing when unset (unit tests prove it)
 - [ ] No regressions in existing tests (97 unit+integration + existing E2E smoke stay green)
 - [ ] Code follows existing project conventions
 - [ ] Relevant `decisions.md` entries added

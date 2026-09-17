@@ -204,4 +204,19 @@
 - 0005 Task 1 DONE; 107 unit+integration tests + E2E smoke all green; working tree clean
 
 **Next:**
+
+## 2026-09-17 — 0005 E2E tests, Task 2: app test seams (env-var guarded)
+
+**Task:** 0005 Task 2 (spec `.ai/specs/0005_e2e-tests.md`) — Prep: app test seams — DONE
+
+**What was done:**
+- `KUSTODESK_E2E_TOKEN` seam at the top of `_buildKcsb` (`src/main/kusto-client.js`): when set, builds `withTokenProvider(url, async () => token)` before the auth-method switch — one guarded branch covers all three real modes; when unset, zero behavior change
+- `KUSTODESK_E2E_EXPORT_DIR` seam in the `export:csv` handler (`src/main/ipc-handlers.js`): when set, skips `dialog.showSaveDialog` and writes `adx-results-<Date.now()>-<random>.csv` into the dir, returning the same `{ success, filePath }` envelope as the dialog path; when unset, the dialog flow is unchanged
+- Decision entry appended (seam placement + deterministic unique filenames); spec DoD boxes ticked for mock server + seams
+- 5 new tests: 3 unit (`KUSTODESK_E2E_TOKEN` — set covers cli/device-code/app-registration without touching `az`, regression guard "az must never run in E2E", unset no-op proving real modes untouched) + 2 integration (`KUSTODESK_E2E_EXPORT_DIR` — dialog bypass with `toCsv` file contents asserted, dialog flow unchanged without the env var); env vars scoped per-test with save/restore, no global leakage
+- Suite status: 112 unit+integration tests, all green
+
+**Next:**
+- 0005 Task 3 — fixtures single source of truth: `tests/e2e/fixtures/kusto-fixtures.js` wired into the mock server's default dataset
+
 - 0005 Task 2 — `KUSTODESK_E2E_TOKEN` static-token provider in `_buildKcsb` + `KUSTODESK_E2E_EXPORT_DIR` in the `export:csv` handler, with no-op-when-unset unit tests
