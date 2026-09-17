@@ -9,7 +9,7 @@
 
 <!-- The single task currently being worked on. Only ONE at a time. -->
 
-- _Empty_
+- **0005 — Task 4: Wiring: launch helper + smoke extension** — `tests/e2e/helpers/launch-app.js` (mock server + isolated data dir + `KUSTODESK_E2E_TOKEN` + cleanup, `it.skipIf(noDisplay)` pattern); extend `smoke.test.js` to also boot the app against the mock — proves the full wiring before any scenario exists. Not started — queued as the next session's first action.
 
 ## Todo
 

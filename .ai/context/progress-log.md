@@ -8,6 +8,24 @@
 
 <!-- Add new session entries below, newest first. -->
 
+## 2026-09-17 — Session Summary (0005 Task 3 complete)
+
+**Commits:** `75dde02`, `4205685`, `06af08c`, `957df0b` (baseline `334b388`)
+
+**What was done:**
+- `75dde02` — **0005 Task 3: fixtures single source of truth** — new `tests/e2e/fixtures/kusto-fixtures.js` (cluster factory with real `cli` auth to prove the E2E token seam, TestDB/AuxDB, StormEvents + StormEventsByState schemas, take/context-menu/failing-query fixtures, mgmt rows, error payloads, `defaultDataset({ materializedViewsError })`); `MockKustoServer` default dataset wired to the fixtures; 6 new default-dataset fidelity tests through the real deserializers + real SDK `Client` over HTTP. Key fidelity fact pinned from SDK v6.0.3 `models.js`: only `datetime`/`timespan` values are converted, so query-result rows avoid them for deterministic assertions (decision entry appended)
+- `4205685` — pcs: Task 3 done; Next Step → Task 4
+- `06af08c` — pcs: bump `.last-sync` after Task 3
+- `957df0b` — chore: sync package-lock.json version to package.json (1.1.0 lockfile drift found at save-progress)
+- Spec 0005 DoD "fixture data is the single source of truth" ticked; tasks.md Task 4 set In Progress; Tests status row corrected (94 → 118)
+
+**Status after session:**
+- 0005 Tasks 1–3 DONE, Task 4 In Progress (not started). 118 unit+integration tests + E2E smoke all green; working tree clean.
+
+**Next:**
+- 0005 Task 4 — `tests/e2e/helpers/launch-app.js` (mock server + isolated `KUSTODESK_DATA_DIR` + `KUSTODESK_E2E_TOKEN` + cleanup, `it.skipIf(noDisplay)`) and extend `smoke.test.js` to boot the app against the mock
+
+
 ## 2026-09-17 — 0005 E2E tests, Task 3: fixtures single source of truth
 
 **Task:** 0005 Task 3 (spec `.ai/specs/0005_e2e-tests.md`) — Fixtures: single source of truth — DONE
