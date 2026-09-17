@@ -25,6 +25,15 @@ Each entry follows this format:
 
 <!-- Add new decisions below, newest first. -->
 
+## 2026-09-17 — Fixture query rows avoid datetime/timespan; fixtures are the mock's default dataset
+
+**Context:** Spec 0005 Task 3 required one fixture module shared by mock responses and assertions. The SDK's `KustoResultRow` (v6.0.3 `models.js`) converts `datetime` values into `Date` objects and `timespan` into millisecond numbers, which would make E2E cell-text/JSON/CSV assertions timezone- and format-dependent.
+
+**Decision:** Query-result fixtures (`TAKE_QUERY_*`, `CONTEXT_MENU_QUERY_*`) use only pass-through types (`long`/`string`/`real`, plus an explicit `null`); `datetime` stays in the table *schema* (schema-JSON node → IntelliSense) but never in served result rows. `MockKustoServer`'s constructor default is now `defaultDataset()` from `tests/e2e/fixtures/kusto-fixtures.js`; scenarios override via the `dataset` option, and the SYN0002-style MV-rejection variant is opt-in via `defaultDataset({ materializedViewsError: true })`. The E2E cluster fixture intentionally declares the real `cli` auth mode so the full-app run proves the `KUSTODESK_E2E_TOKEN` seam overrides it.
+
+**Consequences:** Deterministic assertions everywhere (columns, cells, JSON tab, CSV equality, error text); the default-dataset fidelity tests through the real deserializers/SDK Client keep the fixtures pinned to the SDK contract (the Task 1 lesson). Trade-off: no E2E coverage of datetime/timespan rendering until a scenario deliberately opts in with a Date-aware assertion.
+
+
 ## 2026-09-17 — E2E seams resolve auth inside `_buildKcsb` and write deterministic files
 
 **Context:** Implementing the 0005 test-only seams (`KUSTODESK_E2E_TOKEN`, `KUSTODESK_E2E_EXPORT_DIR`) raised two placement questions: where the token branch belongs, and how the E2E export filename is chosen.

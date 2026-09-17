@@ -27,6 +27,7 @@ _Active feature: 0005 E2E tests with mocked ADX — spec finalized & APPROVED (8
 | _0005 planning_ | Done — spec finalized & APPROVED (8d1cca5); 9-task breakdown in tasks.md Todo | Implementation not started; Task 1 = SDK contract verification + mock-server core |
 | _0005 Task 1_ | **DONE** — mock-server core + fidelity tests (979e8d4) | Task 2 (env-var seams) is next |
 | _0005 Task 2_ | **DONE** — env-var test seams + 5 tests | Task 3 (fixtures) is next |
+| _0005 Task 3_ | **DONE** — fixtures single source of truth + 6 default-dataset fidelity tests | Task 4 (launch helper + smoke extension) is next |
 
 ## Known Issues
 
@@ -40,7 +41,7 @@ _Active feature: 0005 E2E tests with mocked ADX — spec finalized & APPROVED (8
 
 <!-- The single next action to take. Must be concrete and actionable. -->
 
-_0005 E2E tests — start Task 3 (see tasks.md Todo): create `tests/e2e/fixtures/kusto-fixtures.js` as the single source of truth (cluster definitions, StormEvents-style table + materialized view + columns, query result rows, `.show tables`/`.show materialized views` rows, schema-JSON node, error payloads) and wire the mock server's default dataset to the fixtures. Spec: `.ai/specs/0005_e2e-tests.md` (IN PROGRESS). Tasks 1–2 (mock-server core, env-var seams) are done._
+_0005 E2E tests — start Task 4 (see tasks.md Todo): create `tests/e2e/helpers/launch-app.js` (starts the mock server + isolated `KUSTODESK_DATA_DIR` + `KUSTODESK_E2E_TOKEN` + cleanup, `it.skipIf(noDisplay)` pattern, CI args) and extend `smoke.test.js` to also boot the app against the mock — proving the full wiring before any scenario exists. Spec: `.ai/specs/0005_e2e-tests.md` (IN PROGRESS). Tasks 1–3 (mock-server core, env-var seams, fixtures) are done._
 
 ### Manual verification pending (0003 DoD)
 

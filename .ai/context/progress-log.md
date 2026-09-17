@@ -8,6 +8,22 @@
 
 <!-- Add new session entries below, newest first. -->
 
+## 2026-09-17 — 0005 E2E tests, Task 3: fixtures single source of truth
+
+**Task:** 0005 Task 3 (spec `.ai/specs/0005_e2e-tests.md`) — Fixtures: single source of truth — DONE
+
+**What was done:**
+- New `tests/e2e/fixtures/kusto-fixtures.js` — the single source of truth for the mocked-ADX suite: `clusterDefinition(url)` factory (`cli` auth on purpose — the full-app run must prove `KUSTODESK_E2E_TOKEN` overrides a real mode), `DATABASE`/`DATABASES` (TestDB, AuxDB), `StormEvents` + `StormEventsByState` schemas, query fixtures (`StormEvents | take 3`, context-menu `["StormEvents"] | take 100`, failing SEM0100 query), mgmt rows (`.show databases`/`.show tables`/`.show materialized views`/schema-JSON), `ERRORS` payloads, `databaseSchemaNode()/Json()`, `defaultDataset({ materializedViewsError })`
+- Key fidelity fact pinned from SDK v6.0.3 `models.js`: only `datetime` (→ `Date`) and `timespan` (→ ms) values are converted; everything else passes through — so query-result rows avoid datetime/timespan to keep E2E assertions deterministic (decision entry appended)
+- `MockKustoServer` default dataset wired to `defaultDataset()` (fixtures import; scenarios still pass custom `dataset`)
+- 6 new tests in `tests/unit/mock-kusto-server.test.js` pin the DEFAULT dataset through the real deserializers + real SDK `Client` over HTTP: take-query columns/rows incl. null fidelity, context-menu query text, `.show databases`/tables/MVs rows, schema-JSON node equality (first-column read), SEM0100 error via `describeKustoError`, and the SYN0002 variant with the schema-JSON fallback intact
+- Spec DoD "fixture data is the single source of truth" ticked; PCS synced
+- Suite status: 118 unit+integration tests + E2E smoke, all green
+
+**Next:**
+- 0005 Task 4 — launch helper + smoke extension: `tests/e2e/helpers/launch-app.js` (mock server + isolated data dir + `KUSTODESK_E2E_TOKEN` + cleanup), extend `smoke.test.js` to boot the app against the mock
+
+
 ## 2026-09-10 — Session Summary
 
 **Commits:** `8a5c780`, `8de54a0`, `a96b78a`, `738e8c5` (baseline `103e681`)

@@ -133,7 +133,7 @@ It gives the possibility to automatically verify whether the application feature
 
 - [x] Mock Kusto server serves fixtures for query + mgmt endpoints and records received commands
 - [ ] Every implemented feature has at least one E2E scenario: cluster CRUD, test connection, database selection, resources sidebar + context menu, query execution (results table, JSON view, sorting), query error surfacing, query history, IntelliSense completions, CSV export
-- [ ] Fixture data is the single source of truth for both mock responses and assertions
+- [x] Fixture data is the single source of truth for both mock responses and assertions
 - [ ] Full run is headless-safe (passes under `xvfb-run -a npm run test:e2e` locally, exactly as CI runs it)
 - [ ] Local preview run opens a visible app window (documented in README)
 - [x] Test-only seams (`KUSTODESK_E2E_TOKEN`, `KUSTODESK_E2E_EXPORT_DIR`) are env-guarded and change nothing when unset (unit tests prove it)
