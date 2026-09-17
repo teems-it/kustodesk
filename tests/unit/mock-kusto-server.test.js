@@ -22,6 +22,11 @@ const {
   startMockKustoServer,
 } = await import('../e2e/helpers/mock-kusto-server.js');
 
+// Task 3 (spec 0005): the fixture dataset is the single source of truth —
+// these tests pin the DEFAULT dataset served by a plain startMockKustoServer()
+// against the real SDK.
+const fixtures = await import('../e2e/fixtures/kusto-fixtures.js');
+
 const QUERY_COLUMNS = [
   { name: 'EventId', type: 'long' },
   { name: 'State', type: 'string' },
@@ -245,4 +250,124 @@ describe('startMockKustoServer convenience wrapper', () => {
     }
   });
 });
+
+describe('default fixture dataset (single source of truth, real SDK over HTTP)', () => {
+  // Plain startMockKustoServer() — NO explicit dataset — must serve exactly
+  // what kusto-fixtures.js declares. One shared server (the SDK caches cloud
+  // metadata per URL).
+  const mock = startMockKustoServer();
+
+  afterAll(async () => {
+    const m = await mock;
+    await m.stop();
+  });
+
+  function makeSdkClient(baseUrl) {
+    const { Client, KustoConnectionStringBuilder } = require('azure-kusto-data');
+    return new Client(KustoConnectionStringBuilder.withTokenProvider(
+      baseUrl(), async () => 'e2e-token'));
+  }
+
+  it('serves the TAKE_QUERY fixture rows through the real Client, types and nulls intact', async () => {
+    const { url } = await mock;
+    const client = makeSdkClient(url);
+    try {
+      const results = await client.execute(fixtures.DATABASE, fixtures.TAKE_QUERY);
+      expect(results.primaryResults).toHaveLength(1);
+      const table = results.primaryResults[0];
+      expect(table.columns.map((c) => ({ name: c.name, type: c.type })))
+        .toEqual(fixtures.TAKE_QUERY_COLUMNS);
+      expect(rowsToJson(table)).toEqual(fixtures.TAKE_QUERY_ROWS);
+      // explicit null fidelity: DamageCrops of the third row survives as null
+      expect(rowsToJson(table)[2].DamageCrops).toBeNull();
+    } finally {
+      client.close();
+    }
+  });
+
+  it('serves the context-menu query text 0003 inserts', async () => {
+    const { url } = await mock;
+    const client = makeSdkClient(url);
+    try {
+      const results = await client.execute(fixtures.DATABASE, fixtures.CONTEXT_MENU_QUERY);
+      expect(rowsToJson(results.primaryResults[0])).toEqual(fixtures.CONTEXT_MENU_QUERY_ROWS);
+    } finally {
+      client.close();
+    }
+  });
+
+  it('serves .show databases / .show tables / .show materialized views per fixtures', async () => {
+    const { url } = await mock;
+    const client = makeSdkClient(url);
+    try {
+      const dbs = await client.executeMgmt('', '.show databases');
+      expect(rowsToJson(dbs.primaryResults[0])).toEqual(fixtures.SHOW_DATABASES_ROWS);
+
+      const tables = await client.executeMgmt(fixtures.DATABASE, '.show tables');
+      expect(rowsToJson(tables.primaryResults[0])).toEqual(fixtures.SHOW_TABLES_ROWS);
+
+      // default dataset serves MVs successfully (the SYN0002 variant is opt-in)
+      const mvs = await client.executeMgmt(fixtures.DATABASE, '.show materialized views');
+      expect(rowsToJson(mvs.primaryResults[0])).toEqual(fixtures.SHOW_MV_ROWS);
+    } finally {
+      client.close();
+    }
+  });
+
+  it('serves a schema-JSON payload whose parsed node equals the fixture node', async () => {
+    const { url } = await mock;
+    const client = makeSdkClient(url);
+    try {
+      const res = await client.executeMgmt(fixtures.DATABASE, '.show database schema as json');
+      const rows = rowsToJson(res.primaryResults[0]);
+      expect(rows).toHaveLength(1);
+      // the app reads the FIRST column's value regardless of its name
+      expect(JSON.parse(Object.values(rows[0])[0])).toEqual(fixtures.databaseSchemaNode());
+    } finally {
+      client.close();
+    }
+  });
+
+  it('fails FAILING_QUERY with the fixture Kusto error surfaced by describeKustoError', async () => {
+    const { url } = await mock;
+    const client = makeSdkClient(url);
+    let caught;
+    try {
+      await client.execute(fixtures.DATABASE, fixtures.FAILING_QUERY);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeDefined();
+    expect(caught.response.status).toBe(fixtures.QUERY_ERROR.status);
+    expect(describeKustoError(caught)).toBe(fixtures.QUERY_ERROR.message);
+    client.close();
+  });
+
+  it('supports the materializedViewsError variant: SYN0002 for MVs, schema fallback intact', async () => {
+    const fallbackMock = await startMockKustoServer({
+      dataset: fixtures.defaultDataset({ materializedViewsError: true }),
+    });
+    const client = makeSdkClient(fallbackMock.url);
+    try {
+      let caught;
+      try {
+        await client.executeMgmt(fixtures.DATABASE, '.show materialized views');
+      } catch (err) {
+        caught = err;
+      }
+      expect(caught).toBeDefined();
+      expect(describeKustoError(caught)).toBe(fixtures.ERRORS.mvListingRejected.message);
+
+      // the schema-JSON fallback still carries the MV (mirrors the real prod anomaly)
+      const res = await client.executeMgmt(fixtures.DATABASE, '.show database schema as json');
+      const node = JSON.parse(Object.values(rowsToJson(res.primaryResults[0])[0])[0]);
+      expect(Object.keys(node.Databases[fixtures.DATABASE].MaterializedViews))
+        .toEqual([fixtures.MV_NAME]);
+    } finally {
+      client.close();
+      await fallbackMock.stop();
+    }
+  });
+});
+
 

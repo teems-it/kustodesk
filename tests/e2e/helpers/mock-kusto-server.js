@@ -23,9 +23,15 @@
 
 import http from 'node:http';
 
+// Default dataset comes from the fixtures module (spec 0005 Task 3) — the
+// single source of truth shared with the test assertions. Scenarios that
+// need custom responses still pass their own `dataset` option.
+import { defaultDataset } from '../fixtures/kusto-fixtures.js';
+
 const AUTH_METADATA_PATH = '/v1/rest/auth/metadata';
 const QUERY_PATH = '/v2/rest/query';
 const MGMT_PATH = '/v1/rest/mgmt';
+
 
 // Response the SDK's CloudSettings expects (reads response.data.AzureAD).
 // Values mirror cloudSettings.js defaultCloudInfo — enough for the SDK to
@@ -106,8 +112,9 @@ class MockKustoServer {
    * @param {{ queries?: Record<string, object>, mgmt?: Record<string, object> }} [options.dataset]
    *        Maps command text (trimmed csl) to a success/error spec. Dispatches
    *        on the literal command text — the mock does not evaluate KQL.
+   *        Defaults to the fixture dataset (tests/e2e/fixtures/kusto-fixtures.js).
    */
-  constructor({ dataset = { queries: {}, mgmt: {} } } = {}) {
+  constructor({ dataset = defaultDataset() } = {}) {
     this.dataset = dataset;
     // Every received command, in order: { path, db, csl, authorization }
     // (authorization kept raw so tests can assert a Bearer token was sent).
