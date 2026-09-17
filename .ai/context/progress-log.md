@@ -188,3 +188,20 @@
 - 0005 Task 2 — test-only env-var seams: `KUSTODESK_E2E_TOKEN` in `_buildKcsb`, `KUSTODESK_E2E_EXPORT_DIR` in the `export:csv` handler, with no-op-when-unset unit tests
 
 - Editor integration chunk: show-hint.min.js script tag in index.html, schema cache in app.js keyed by cluster::database with the stale-response guard, custom hint function (Ctrl/Cmd+Space + auto-popup 2+ chars and after dot, suppressed in comments/strings), silent keyword-only degradation on schema failure; then manual spec scenarios 1-6, README bullet, spec 0004 -> DONE.
+
+
+## 2026-09-17 — Session Summary (0005 spec APPROVED + Task 1 sync)
+
+**Commits:** `8d1cca5`, `e644225`, `979e8d4`, `a6f6ad2`
+
+**What was done:**
+- `8d1cca5` - 0005 E2E tests spec finalized (DRAFT) + planning decisions (mock via local HTTP server; `KUSTODESK_E2E_TOKEN` / `KUSTODESK_E2E_EXPORT_DIR` seams)
+- `e644225` - pcs: 0005 task breakdown (prep -> fixtures -> wiring -> scenarios); spec -> APPROVED
+- `979e8d4` - 0005 Task 1: mock Kusto server core + SDK REST-contract fidelity tests; fixed the `columnType`->`type` deserializer bug in `execute()` (see the Task 1 entry above for details)
+- `a6f6ad2` - pcs: Task 1 done; Next Step -> Task 2 env-var seams
+
+**Status after session:**
+- 0005 Task 1 DONE; 107 unit+integration tests + E2E smoke all green; working tree clean
+
+**Next:**
+- 0005 Task 2 — `KUSTODESK_E2E_TOKEN` static-token provider in `_buildKcsb` + `KUSTODESK_E2E_EXPORT_DIR` in the `export:csv` handler, with no-op-when-unset unit tests
