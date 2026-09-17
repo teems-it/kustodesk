@@ -19,6 +19,15 @@ class KustoClientManager {
   }
 
   _buildKcsb(url, authMethod, authConfig = {}, onDeviceCodeMessage) {
+    // Test-only seam (spec 0005): the E2E mock Kusto server issues no AAD tokens,
+    // so when KUSTODESK_E2E_TOKEN is set, authenticate with a static token
+    // regardless of the configured auth method. Without the env var this branch
+    // is a no-op and all three real auth modes behave exactly as before.
+    if (process.env.KUSTODESK_E2E_TOKEN) {
+      const token = process.env.KUSTODESK_E2E_TOKEN;
+      return KustoConnectionStringBuilder.withTokenProvider(url, async () => token);
+    }
+
     switch (authMethod) {
       case 'cli': {
         // Directly invoke `az account get-access-token` — identical to what works in terminal.

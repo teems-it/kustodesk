@@ -315,6 +315,33 @@ describe('export:csv', () => {
       { fake: 'window' }, expect.objectContaining({ title: 'Export to CSV' })
     );
   });
+
+  it('KUSTODESK_E2E_EXPORT_DIR seam: writes toCsv output there and skips the dialog', async () => {
+    process.env.KUSTODESK_E2E_EXPORT_DIR = dir; // reuse this test's temp dir
+    try {
+      const result = await ipc.invoke('export:csv', data);
+
+      expect(result.success).toBe(true);
+      expect(result.filePath.startsWith(dir)).toBe(true);
+      expect(result.filePath).toMatch(/adx-results-\d+-[a-z0-9]+\.csv$/);
+      expect(readFileSync(result.filePath, 'utf8')).toBe(toCsv(data.columns, data.rows));
+      expect(dialog.showSaveDialog).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.KUSTODESK_E2E_EXPORT_DIR;
+    }
+  });
+
+  it('KUSTODESK_E2E_EXPORT_DIR seam: without the env var the dialog flow is unchanged', async () => {
+    delete process.env.KUSTODESK_E2E_EXPORT_DIR;
+
+    const filePath = join(dir, 'out.csv');
+    dialog.showSaveDialog.mockResolvedValue({ canceled: false, filePath });
+
+    const result = await ipc.invoke('export:csv', data);
+
+    expect(result).toEqual({ success: true, filePath });
+    expect(readFileSync(filePath, 'utf8')).toBe(toCsv(data.columns, data.rows));
+  });
 });
 
 

@@ -3,6 +3,7 @@
 // are injected so the handlers can be integration-tested without launching Electron.
 
 const fs = require('fs');
+const path = require('path');
 const { toCsv } = require('./csv');
 const { describeKustoError } = require('./kusto-client');
 
@@ -91,6 +92,17 @@ function registerIpcHandlers({ ipcMain, store, kustoManager, dialog, getWindow }
   // ── CSV Export ────────────────────────────────────────────────────────────────
 
   ipcMain.handle('export:csv', async (_, { columns, rows }) => {
+    // Test-only seam (spec 0005): the native save dialog cannot be driven by the
+    // E2E tests, so when KUSTODESK_E2E_EXPORT_DIR is set, skip the dialog and
+    // write to a uniquely named file in that dir, returning the same envelope.
+    // Without the env var this branch is a no-op and the dialog flow is unchanged.
+    const e2eExportDir = process.env.KUSTODESK_E2E_EXPORT_DIR;
+    if (e2eExportDir) {
+      const filePath = path.join(e2eExportDir, `adx-results-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.csv`);
+      fs.writeFileSync(filePath, toCsv(columns, rows), 'utf8');
+      return { success: true, filePath };
+    }
+
     const { canceled, filePath } = await dialog.showSaveDialog(getWindow(), {
       title: 'Export to CSV',
       defaultPath: `adx-results-${Date.now()}.csv`,

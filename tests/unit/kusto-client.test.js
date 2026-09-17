@@ -2,10 +2,66 @@
 // azure-kusto-data and child_process (the `az` shell-out) are stubbed by
 // patching the real CommonJS module exports *before* kusto-client.js loads —
 // vi.mock can't intercept `require()` calls made inside a CJS module.
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
+
+// Test-only seam (0005): when KUSTODESK_E2E_TOKEN is set, _buildKcsb must use a
+// static-token provider regardless of auth method; when unset, nothing changes.
+describe('KUSTODESK_E2E_TOKEN seam', () => {
+  const ORIGINAL = process.env.KUSTODESK_E2E_TOKEN;
+
+  afterEach(() => {
+    if (ORIGINAL === undefined) delete process.env.KUSTODESK_E2E_TOKEN;
+    else process.env.KUSTODESK_E2E_TOKEN = ORIGINAL;
+  });
+
+  it('when set, builds a static-token KCSB for every auth method without touching az', async () => {
+    process.env.KUSTODESK_E2E_TOKEN = 'static-e2e-token';
+
+    for (const authMethod of ['cli', 'device-code', 'app-registration']) {
+      await mgr.execute(URL, 'db', 'T | count', authMethod, { tenantId: 't1', clientId: 'c', clientSecret: 's' });
+    }
+
+    expect(execSync).not.toHaveBeenCalled();
+    expect(kusto.withTokenProvider).toHaveBeenCalledTimes(3);
+    for (const call of kusto.withTokenProvider.mock.calls) {
+      expect(call[0]).toBe(URL);
+      await expect(call[1]()).resolves.toBe('static-e2e-token');
+    }
+    // the real auth-mode builders were never invoked
+    expect(kusto.withAadDeviceAuthentication).not.toHaveBeenCalled();
+    expect(kusto.withAadApplicationKeyAuthentication).not.toHaveBeenCalled();
+  });
+
+  it('when set, the token provider ignores the auth method entirely (regression: cli shells out)', async () => {
+    process.env.KUSTODESK_E2E_TOKEN = 'another-static-token';
+    execSync.mockImplementation(() => { throw new Error('az must never run in E2E'); });
+
+    await expect(mgr.execute(URL, 'db', 'T | count', 'cli', {})).resolves.toBeDefined();
+    expect(execSync).not.toHaveBeenCalled();
+  });
+
+  it('when unset, is a no-op — the real auth modes are untouched', async () => {
+    delete process.env.KUSTODESK_E2E_TOKEN;
+
+    execSync.mockReturnValue(JSON.stringify({ accessToken: 'az-token' }));
+    await mgr.execute(URL, 'db', 'T | count', 'cli', {});
+    expect(kusto.withTokenProvider).toHaveBeenCalledTimes(1);
+    expect(kusto.withTokenProvider.mock.calls[0][0]).toBe(URL);
+    const [, cb] = kusto.withTokenProvider.mock.calls[0];
+    await expect(cb()).resolves.toBe('az-token'); // from the az shell-out, not the env var
+
+    await mgr.execute(URL, 'db', 'T | count', 'device-code', { tenantId: 't1' });
+    expect(kusto.withAadDeviceAuthentication).toHaveBeenCalledWith(URL, 't1', undefined);
+
+    // the static-token builder was never used with the env var unset
+    for (const call of kusto.withTokenProvider.mock.calls) {
+      await expect(call[1]()).resolves.not.toBe('static-e2e-token');
+    }
+  });
+});
 
 const kusto = {
   Client: vi.fn(),
