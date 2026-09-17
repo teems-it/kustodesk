@@ -172,4 +172,19 @@
 - `be9935a` - pcs: current-state Next Step -> editor-integration chunk
 
 **Next:**
+
+## 2026-09-17 — 0005 E2E tests, Task 1: SDK contract verification + mock-server core
+
+**Task:** 0005 Task 1 (spec `.ai/specs/0005_e2e-tests.md`) — Prep: SDK REST contract verification + mock-server core — DONE
+
+**What was done:**
+- Pinned the azure-kusto-data v6.0.3 REST contract from `node_modules` source: POST `/v2/rest/query` (query, V2 frames envelope) and POST `/v1/rest/mgmt` (mgmt, V1 `{Tables}` envelope), both with `{db, csl}` JSON bodies; GET `/v1/rest/auth/metadata` fires before every execute (per-cluster cache, 404 → default cloud info); loopback hostnames are unconditionally trusted (127.0.0.1 works over plain http); only HTTP 200 passes `validateStatus`; error bodies surface via `describeKustoError` (`{error:{"@message"}}` or plain string)
+- New `tests/e2e/helpers/mock-kusto-server.js`: dependency-free `http.Server` on an ephemeral loopback port; dispatches on literal command text against a dataset spec (success specs, error specs, dynamic function entries); records every received command (`path, db, csl, authorization`); serves the auth-metadata endpoint; bearer tokens accepted and ignored; Kusto-style 4xx error envelopes; `closeAllConnections()` cleanup for the SDK's keepAlive sockets
+- New `tests/unit/mock-kusto-server.test.js` — 10 tests pinning payload fidelity against the REAL `KustoResponseDataSetV1`/`V2` deserializers AND the real SDK `Client` over actual HTTP (query round-trip, mgmt round-trip, unknown-command error, dataset-configured error, metadata endpoint, generator-`rows()` discipline)
+- **Real bug found by the fidelity tests:** `execute()` in `src/main/kusto-client.js` read `c.columnType`, but the SDK's `KustoResultColumn` exposes `type` — every real query's column types silently degraded to `'dynamic'`. Fixed to `c.type || 'dynamic'`; the unit-test fixture that baked the wrong property (`{ name, columnType }` mock columns) was corrected too
+- Suite status: 107 unit+integration tests + E2E smoke, all green
+
+**Next:**
+- 0005 Task 2 — test-only env-var seams: `KUSTODESK_E2E_TOKEN` in `_buildKcsb`, `KUSTODESK_E2E_EXPORT_DIR` in the `export:csv` handler, with no-op-when-unset unit tests
+
 - Editor integration chunk: show-hint.min.js script tag in index.html, schema cache in app.js keyed by cluster::database with the stale-response guard, custom hint function (Ctrl/Cmd+Space + auto-popup 2+ chars and after dot, suppressed in comments/strings), silent keyword-only degradation on schema failure; then manual spec scenarios 1-6, README bullet, spec 0004 -> DONE.

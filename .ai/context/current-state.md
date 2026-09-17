@@ -25,6 +25,7 @@ _Active feature: 0005 E2E tests with mocked ADX — spec finalized & APPROVED (8
 | _0004 hint engine_ | Done: kusto-hints.js pure module + 15 unit tests (2347cd9) | - |
 | _0004 IntelliSense_ | **DONE** — backend (14d3aa3), hint engine (2347cd9), editor integration (c84d35f); verification bugfixes 8a5c780 + a96b78a; spec → DONE | 97 unit+integration + E2E green |
 | _0005 planning_ | Done — spec finalized & APPROVED (8d1cca5); 9-task breakdown in tasks.md Todo | Implementation not started; Task 1 = SDK contract verification + mock-server core |
+| _0005 Task 1_ | **DONE** — mock-server core + fidelity tests (979e8d4) | Task 2 (env-var seams) is next |
 
 ## Known Issues
 
@@ -38,7 +39,7 @@ _Active feature: 0005 E2E tests with mocked ADX — spec finalized & APPROVED (8
 
 <!-- The single next action to take. Must be concrete and actionable. -->
 
-_0005 E2E tests — start Task 1 (see tasks.md Todo): verify the `azure-kusto-data` v6 REST contract from `node_modules` source (request paths, bodies, response envelopes), then build the mock-server core `tests/e2e/helpers/mock-kusto-server.js` with unit tests pinning payload fidelity against the real `KustoResponseDataSetV1`/`V2` deserializers. Spec: `.ai/specs/0005_e2e-tests.md` (APPROVED)._
+_0005 E2E tests — start Task 2 (see tasks.md Todo): add the `KUSTODESK_E2E_TOKEN` static-token provider in `_buildKcsb` (`src/main/kusto-client.js`) and the `KUSTODESK_E2E_EXPORT_DIR` seam in the `export:csv` handler (`src/main/ipc-handlers.js`); unit tests proving both are no-ops when unset and all three real auth modes are untouched. Spec: `.ai/specs/0005_e2e-tests.md` (APPROVED). Task 1 (mock-server core) is done._
 
 ### Manual verification pending (0003 DoD)
 
