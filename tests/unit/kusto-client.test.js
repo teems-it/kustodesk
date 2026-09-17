@@ -34,7 +34,7 @@ const { KustoClientManager, describeKustoError } = await import('../../src/main/
 const URL = 'https://help.kusto.windows.net';
 const QUERY_RESULT = {
   primaryResults: [{
-    columns: [{ name: 'A', columnType: 'string' }, { name: 'B', columnType: 'long' }],
+    columns: [{ name: 'A', type: 'string' }, { name: 'B', type: 'long' }],
     rows: () => [
       { toJSON: () => ({ A: 'x', B: 1 }) },
       { toJSON: () => ({ A: 'y', B: 2 }) },

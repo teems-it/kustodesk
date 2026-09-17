@@ -104,7 +104,7 @@ class KustoClientManager {
     const primaryTable = results.primaryResults[0];
     const columns = primaryTable.columns.map((c) => ({
       name: c.name,
-      type: c.columnType || 'dynamic',
+      type: c.type || 'dynamic',
     }));
 
     // Use the SDK's rows() iterator + toJSON() — the correct v6 API
