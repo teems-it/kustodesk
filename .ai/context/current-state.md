@@ -18,7 +18,7 @@ _Active feature: 0005 E2E tests with mocked ADX — spec finalized & APPROVED (8
 |---|---|---|
 | _Backend_ | First version implemented. | `main.js` thin composition root; IPC in `ipc-handlers.js`; `getResources()` in `kusto-client.js` |
 | _Frontend_ | First version implemented. | Resources sidebar (tables + materialized views, context menu) added in 0003 |
-| _Tests_ | 118 unit+integration tests + 1 E2E smoke, all green. | Vitest; `npm test` / `npm run test:e2e`; CI in `build.yml` |
+| _Tests_ | 118 unit+integration tests + 2 E2E smoke, all green. | Vitest; `npm test` / `npm run test:e2e`; CI in `build.yml` |
 | _CI_ | "Build & Test" workflow added (`build.yml`); "Build & Release" unchanged. | Runs on push to `main` + PRs |
 | _Docs_ | README dev/testing section + macOS Gatekeeper note + resource sidebar feature bullet. |
 | _0004 backend_ | Done: getSchema + kusto:get-schema IPC + preload (14d3aa3) | - |
@@ -28,6 +28,7 @@ _Active feature: 0005 E2E tests with mocked ADX — spec finalized & APPROVED (8
 | _0005 Task 1_ | **DONE** — mock-server core + fidelity tests (979e8d4) | Task 2 (env-var seams) is next |
 | _0005 Task 2_ | **DONE** — env-var test seams + 5 tests | Task 3 (fixtures) is next |
 | _0005 Task 3_ | **DONE** — fixtures single source of truth + 6 default-dataset fidelity tests | Task 4 (launch helper + smoke extension) is next |
+| _0005 Task 4_ | **DONE** — launch-app helper + full-wiring smoke test (mock receives `.show databases` with the E2E Bearer token; renderer reflects mock data) | Task 5 (cluster lifecycle scenarios) is next |
 
 ## Known Issues
 
@@ -41,7 +42,7 @@ _Active feature: 0005 E2E tests with mocked ADX — spec finalized & APPROVED (8
 
 <!-- The single next action to take. Must be concrete and actionable. -->
 
-_0005 E2E tests — start Task 4 (see tasks.md Todo): create `tests/e2e/helpers/launch-app.js` (starts the mock server + isolated `KUSTODESK_DATA_DIR` + `KUSTODESK_E2E_TOKEN` + cleanup, `it.skipIf(noDisplay)` pattern, CI args) and extend `smoke.test.js` to also boot the app against the mock — proving the full wiring before any scenario exists. Spec: `.ai/specs/0005_e2e-tests.md` (IN PROGRESS). Tasks 1–3 (mock-server core, env-var seams, fixtures) are done._
+_0005 E2E tests — start Task 5 (see tasks.md Todo): cluster lifecycle scenarios — add/edit/delete cluster + `clusters.json` persistence + history cascade, test-connection success/failure, database dropdown from mock (spec scenarios 1–3), built on `launchApp()` from Task 4. Harness convention (decision 2026-09-18): vitest `expect` ≠ @playwright/test — use playwright-core `locator.waitFor`/`page.waitForFunction` + plain text comparisons; `waitForMockCommand` only proves the mock RECEIVED a command, so always follow with a DOM wait before asserting UI state. Spec: `.ai/specs/0005_e2e-tests.md` (IN PROGRESS). Tasks 1–4 (mock-server core, env-var seams, fixtures, launch wiring) are done._
 
 ### Manual verification pending (0003 DoD)
 

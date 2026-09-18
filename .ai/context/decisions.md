@@ -25,6 +25,14 @@ Each entry follows this format:
 
 <!-- Add new decisions below, newest first. -->
 
+## 2026-09-18 — launch-app helper owns the mock+app lifecycle; renderer assertions use playwright-core wait APIs
+
+**Context:** Spec 0005 Task 4 needed shared "launch the app wired to the mock" plumbing for every scenario suite, and the first full-wiring smoke run exposed that `vitest`'s `expect` has no Playwright locator assertions (`toBeVisible`, `toHaveValue`) — the project uses `playwright-core` directly, not `@playwright/test`.
+
+**Decision:** (1) `tests/e2e/helpers/launch-app.js` owns the whole launch lifecycle: `launchApp({ seedFixtureCluster, dataset })` starts the mock server, creates the isolated `KUSTODESK_DATA_DIR` temp dir, optionally pre-seeds `clusters.json`/`history.json` before launch (Store only creates missing files, so pre-seeded ones load as-is), launches the dev binary with `KUSTODESK_E2E_TOKEN`, and returns `{ app, win, mock, dataDir, cleanup }` where `cleanup()` is app.close → mock.stop → rm -rf. Scenarios never touch `_electron.launch` or the mock server directly. `waitForMockCommand(mock, csl)` polls the mock's received-command recorder with a timeout — the standard way to await a mock round-trip from assertions. The bare-launch smoke test also uses the helper (a mock runs even though unused — harmless and keeps one launch path). (2) Renderer assertions in E2E suites use playwright-core wait APIs only: `locator.waitFor({ state: 'visible' })`, `page.waitForFunction()`, then plain `textContent()`/`allTextContents()` compared with vitest's `expect`. No `@playwright/test` migration (Decision 4 of spec 0005 stands).
+
+**Consequences:** Scenario suites (Tasks 5–8) are a few lines each and consistent; renderer assertions poll the DOM the way real UI updates arrive instead of relying on Playwright's built-in assertion retries. Trade-off: slightly more verbose assertions; `waitForFunction` defaults (15s) must be passed explicitly. Risk noted: `waitForMockCommand` resolves when the mock RECEIVES a request, not when the renderer has rendered the response — follow-up DOM waits are still required before asserting UI state.
+
 ## 2026-09-17 — Fixture query rows avoid datetime/timespan; fixtures are the mock's default dataset
 
 **Context:** Spec 0005 Task 3 required one fixture module shared by mock responses and assertions. The SDK's `KustoResultRow` (v6.0.3 `models.js`) converts `datetime` values into `Date` objects and `timespan` into millisecond numbers, which would make E2E cell-text/JSON/CSV assertions timezone- and format-dependent.
