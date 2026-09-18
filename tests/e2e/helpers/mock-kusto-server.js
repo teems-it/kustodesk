@@ -22,11 +22,24 @@
 //     iterate it (never index) and use row.toJSON().
 
 import http from 'node:http';
+import https from 'node:https';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 // Default dataset comes from the fixtures module (spec 0005 Task 3) — the
 // single source of truth shared with the test assertions. Scenarios that
 // need custom responses still pass their own `dataset` option.
 import { defaultDataset } from '../fixtures/kusto-fixtures.js';
+
+// Self-signed test certificate for the HTTPS variant of the mock (see the
+// `https` option below). Committed rather than generated at runtime so the
+// suite has no openssl dependency; CN=127.0.0.1, loopback-only usage, private
+// key is throwaway. The app never validates it: scenario suites that launch
+// over https set NODE_TLS_REJECT_UNAUTHORIZED=0 in the APP's env only
+// (launch-app.js), which makes the SDK's axios accept the self-signed cert.
+const TLS_KEY = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'mock-tls', 'key.pem'));
+const TLS_CERT = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'mock-tls', 'cert.pem'));
 
 const AUTH_METADATA_PATH = '/v1/rest/auth/metadata';
 const QUERY_PATH = '/v2/rest/query';
@@ -113,18 +126,29 @@ class MockKustoServer {
    *        Maps command text (trimmed csl) to a success/error spec. Dispatches
    *        on the literal command text — the mock does not evaluate KQL.
    *        Defaults to the fixture dataset (tests/e2e/fixtures/kusto-fixtures.js).
+   * @param {boolean} [options.https=false] Serve TLS with the committed
+   *        self-signed loopback certificate (url() then reports https://).
+   *        Needed by the modal-driven cluster scenarios: the app's
+   *        validateModal() rejects non-https:// cluster URLs, so "add a
+   *        cluster pointing at the mock" requires the mock to speak TLS.
+   *        Pair with NODE_TLS_REJECT_UNAUTHORIZED=0 in the app's env
+   *        (launch-app.js does this when `tls: true`).
    */
-  constructor({ dataset = defaultDataset() } = {}) {
+  constructor({ dataset = defaultDataset(), https: httpsMode = false } = {}) {
     this.dataset = dataset;
+    this.httpsMode = httpsMode;
     // Every received command, in order: { path, db, csl, authorization }
     // (authorization kept raw so tests can assert a Bearer token was sent).
     this.received = [];
-    this.server = http.createServer((req, res) => this._dispatch(req, res));
+    const handler = (req, res) => this._dispatch(req, res);
+    this.server = httpsMode
+      ? https.createServer({ key: TLS_KEY, cert: TLS_CERT }, handler)
+      : http.createServer(handler);
   }
 
   get url() {
     const addr = this.server.address();
-    return `http://127.0.0.1:${addr.port}`;
+    return `${this.httpsMode ? 'https' : 'http'}://127.0.0.1:${addr.port}`;
   }
 
   start() {

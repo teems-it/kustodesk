@@ -3,8 +3,9 @@
 // azure-kusto-data deserializers (KustoResponseDataSetV2/V1) and the REAL
 // Client over actual HTTP against the mock — so the E2E mock can never drift
 // from the SDK contract (the 0003 generator-rows() lesson).
-import { describe, it, expect, afterAll } from 'vitest';
+import { describe, it, expect, afterAll, beforeAll } from 'vitest';
 import { createRequire } from 'node:module';
+import https from 'node:https';
 
 const require = createRequire(import.meta.url);
 const { KustoResponseDataSetV2 } = require('azure-kusto-data/dist-esm/src/response.js');
@@ -367,6 +368,44 @@ describe('default fixture dataset (single source of truth, real SDK over HTTP)',
       client.close();
       await fallbackMock.stop();
     }
+  });
+});
+
+// Task 5 (spec 0005): the HTTPS variant of the mock — the modal-driven cluster
+// scenarios need it because the app's validateModal() rejects non-https:// URLs.
+describe('MockKustoServer https mode', () => {
+  let httpsMock;
+
+  beforeAll(async () => {
+    httpsMock = await startMockKustoServer({ https: true });
+  });
+
+  afterAll(async () => {
+    await httpsMock.stop();
+  });
+
+  it('serves TLS on a loopback https:// url using the committed self-signed cert', async () => {
+    expect(httpsMock.url().startsWith('https://127.0.0.1:')).toBe(true);
+
+    const body = await new Promise((resolve, reject) => {
+      const req = https.request(
+        `${httpsMock.url()}${MGMT_PATH}`,
+        {
+          method: 'POST',
+          rejectUnauthorized: false, // mirrors the app's NODE_TLS_REJECT_UNAUTHORIZED=0
+        },
+        (res) => {
+          let data = '';
+          res.on('data', (c) => (data += c));
+          res.on('end', () => resolve({ status: res.statusCode, data }));
+        },
+      );
+      req.on('error', reject);
+      req.end(JSON.stringify({ db: '', csl: '.show databases' }));
+    });
+
+    expect(body.status).toBe(200);
+    expect(JSON.parse(body.data).Tables).toHaveLength(1);
   });
 });
 

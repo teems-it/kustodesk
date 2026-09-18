@@ -45,14 +45,32 @@ export function seededClusterDefinition(url) {
  *        with the fixture cluster pointing at the mock (auth method `cli` —
  *        the KUSTODESK_E2E_TOKEN seam must override it). On boot the app
  *        auto-selects it and loads databases: the full-wiring path.
+ * @param {Array<object>} [options.seedHistory] Pre-seed history.json with
+ *        these entries (requires seedFixtureCluster for a meaningful
+ *        clusterId; used by the delete-cascades-history scenario).
+ * @param {boolean} [options.tls=false] Serve the mock over HTTPS (committed
+ *        self-signed loopback cert) and set NODE_TLS_REJECT_UNAUTHORIZED=0
+ *        in the APP's env so the SDK's axios accepts it. Required by the
+ *        modal-driven cluster scenarios — the app's validateModal() rejects
+ *        non-https:// cluster URLs, so "add a cluster pointing at the mock"
+ *        is only reachable with an https mock. Scoped to the launched app
+ *        process; never set in production runs.
  * @param {import('./mock-kusto-server.js').MockKustoServer['dataset']} [options.dataset]
  *        Override the mock's served dataset (defaults to the fixture dataset).
  * @returns {Promise<{app: *|import('playwright-core').ElectronApplication,
  *                    win: *|import('playwright-core').Page,
  *                    mock: *, dataDir: string, cleanup: () => Promise<void>}>}
  */
-export async function launchApp({ seedFixtureCluster = false, dataset } = {}) {
-  const mock = await startMockKustoServer(dataset ? { dataset } : undefined);
+export async function launchApp({
+  seedFixtureCluster = false,
+  seedHistory,
+  tls = false,
+  dataset,
+} = {}) {
+  const mock = await startMockKustoServer({
+    ...(dataset ? { dataset } : {}),
+    ...(tls ? { https: true } : {}),
+  });
   const dataDir = mkdtempSync(join(tmpdir(), 'kustodesk-e2e-'));
 
   if (seedFixtureCluster) {
@@ -62,7 +80,7 @@ export async function launchApp({ seedFixtureCluster = false, dataset } = {}) {
       join(dataDir, 'clusters.json'),
       JSON.stringify([seededClusterDefinition(mock.url())]),
     );
-    writeFileSync(join(dataDir, 'history.json'), JSON.stringify([]));
+    writeFileSync(join(dataDir, 'history.json'), JSON.stringify(seedHistory ?? []));
   }
 
   const args = ['.'];
@@ -74,6 +92,8 @@ export async function launchApp({ seedFixtureCluster = false, dataset } = {}) {
       ...process.env,
       KUSTODESK_DATA_DIR: dataDir,
       KUSTODESK_E2E_TOKEN: E2E_TOKEN,
+      // Test-only TLS trust for the self-signed https mock (see `tls` above).
+      ...(tls ? { NODE_TLS_REJECT_UNAUTHORIZED: '0' } : {}),
       // NOTE: KUSTODESK_E2E_EXPORT_DIR stays unset here — the CSV-export
       // scenario sets it explicitly on its own launch (spec scenario 8).
     },
@@ -100,13 +120,22 @@ export async function launchApp({ seedFixtureCluster = false, dataset } = {}) {
  * Returns the received record: { path, db, csl, authorization }.
  */
 export function waitForMockCommand(mock, csl, timeoutMs = 15000) {
+  return waitForMockCommandWhere(mock, (r) => r.csl === csl, timeoutMs);
+}
+
+/**
+ * Generalized waitForMockCommand: resolves once the mock has received any
+ * record matching `predicate` (e.g. `{ csl, db }` combinations), rejecting
+ * on timeout. Returns the received record: { path, db, csl, authorization }.
+ */
+export function waitForMockCommandWhere(mock, predicate, timeoutMs = 15000) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(
-      () => reject(new Error(`mock never received: ${csl}`)),
+      () => reject(new Error('mock never received a matching command')),
       timeoutMs,
     );
     (function check() {
-      const rec = mock.received.find((r) => r.csl === csl);
+      const rec = mock.received.find(predicate);
       if (rec) {
         clearTimeout(timer);
         resolve(rec);

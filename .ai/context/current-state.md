@@ -8,7 +8,7 @@
 ## Active Feature
 
 <!-- Name of the feature currently being worked on, or "None" -->
-_Active feature: 0005 E2E tests with mocked ADX — spec finalized & APPROVED (8d1cca5), work split into 9 tasks (tasks.md Todo). Implementation not started; Task 1 is next._
+_Active feature: 0005 E2E tests with mocked ADX — spec APPROVED & IN PROGRESS; Tasks 1–5 of 9 done (mock-server core, env-var seams, fixtures, launch wiring, cluster lifecycle scenarios). Task 6 (query execution scenarios) is next._
 
 ## Status
 
@@ -29,6 +29,7 @@ _Active feature: 0005 E2E tests with mocked ADX — spec finalized & APPROVED (8
 | _0005 Task 2_ | **DONE** — env-var test seams + 5 tests | Task 3 (fixtures) is next |
 | _0005 Task 3_ | **DONE** — fixtures single source of truth + 6 default-dataset fidelity tests | Task 4 (launch helper + smoke extension) is next |
 | _0005 Task 4_ | **DONE** — launch-app helper + full-wiring smoke test (mock receives `.show databases` with the E2E Bearer token; renderer reflects mock data) | Task 5 (cluster lifecycle scenarios) is next |
+| _0005 Task 5_ | **DONE** — clusters.test.js (4 scenarios: modal add/edit + persistence, delete + history cascade, test-connection success/failure, database dropdown) + HTTPS mock variant (this commit) | Task 6 (query execution scenarios) is next |
 
 ## Known Issues
 
@@ -42,7 +43,7 @@ _Active feature: 0005 E2E tests with mocked ADX — spec finalized & APPROVED (8
 
 <!-- The single next action to take. Must be concrete and actionable. -->
 
-_0005 E2E tests — start Task 5 (see tasks.md Todo): cluster lifecycle scenarios — add/edit/delete cluster + `clusters.json` persistence + history cascade, test-connection success/failure, database dropdown from mock (spec scenarios 1–3), built on `launchApp()` from Task 4. Harness convention (decision 2026-09-18): vitest `expect` ≠ @playwright/test — use playwright-core `locator.waitFor`/`page.waitForFunction` + plain text comparisons; `waitForMockCommand` only proves the mock RECEIVED a command, so always follow with a DOM wait before asserting UI state. Spec: `.ai/specs/0005_e2e-tests.md` (IN PROGRESS). Tasks 1–4 (mock-server core, env-var seams, fixtures, launch wiring) are done._
+_0005 E2E tests — start Task 6 (see tasks.md Todo): query execution scenarios — results table (row count, cells), sorting, JSON tab, history entry + reload on click, error surfacing + recovery (spec scenarios 5–6), built on `launchApp({ seedFixtureCluster: true })` and the TAKE_QUERY/FAILING_QUERY/QUERY_ERROR fixtures. Harness convention (decision 2026-09-18): vitest `expect` ≠ @playwright/test — use playwright-core `locator.waitFor`/`page.waitForFunction` + plain text comparisons; `waitForMockCommand(mock, csl)` / `waitForMockCommandWhere(mock, predicate)` only prove the mock RECEIVED a command, so always follow with a DOM wait before asserting UI state. Sorting is renderer-side (click `th[data-col]`) — assert reordered cell texts; history reload sets the editor value (`history-item[data-query]` → `editor.setValue`). Spec: `.ai/specs/0005_e2e-tests.md` (IN PROGRESS). Tasks 1–5 done._
 
 ### Manual verification pending (0003 DoD)
 

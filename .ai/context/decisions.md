@@ -25,6 +25,14 @@ Each entry follows this format:
 
 <!-- Add new decisions below, newest first. -->
 
+## 2026-09-18 — HTTPS variant of the mock (committed self-signed loopback cert); confirm/hover handling in E2E
+
+**Context:** Spec 0005 Task 5 requires the cluster lifecycle scenarios to drive the real add/edit-cluster modal against the mock, but the app's `validateModal()` rejects any cluster URL that doesn't start with `https://`, and the mock only spoke HTTP. Delete is additionally gated behind `window.confirm` (a native dialog Playwright cannot click), and the cluster edit/delete buttons are hover-only (`.cluster-item:hover .cluster-actions`).
+
+**Decision:** (1) `MockKustoServer` gains an `https: true` option serving TLS with a committed self-signed certificate (`tests/e2e/helpers/mock-tls/{cert,key}.pem`, CN=127.0.0.1, 10-year validity, throwaway key) — committed rather than openssl-generated at runtime so the suite has no runtime tooling dependency. Scenario suites launch via `launchApp({ tls: true })`, which sets `NODE_TLS_REJECT_UNAUTHORIZED=0` in the LAUNCHED APP's env only (the SDK's axios is Node http — Chromium flags don't apply), never in production runs. (2) The delete scenario overrides `window.confirm` in the page via `win.evaluate(() => { window.confirm = () => true; })`. (3) Edit/delete clicks require an explicit `win.hover('.cluster-item')` first. (4) `launchApp` also gained `seedHistory` (pre-seed history.json for the cascade assertion) and the helper exports `waitForMockCommandWhere(mock, predicate)` for `{ csl, db }`-style receipt assertions.
+
+**Consequences:** Modal-driven scenarios are now fully reachable (previously only pre-seeded clusters.json bypassed the https validation). The TLS trust escape is scoped to the E2E-launched app process and paired with the existing KUSTODESK_E2E_TOKEN seam, so no real AAD traffic can occur. Trade-offs: a private key sits in the repo (clearly test-only, loopback-only); `waitForMockCommand` remains for the common exact-csl case.
+
 ## 2026-09-18 — launch-app helper owns the mock+app lifecycle; renderer assertions use playwright-core wait APIs
 
 **Context:** Spec 0005 Task 4 needed shared "launch the app wired to the mock" plumbing for every scenario suite, and the first full-wiring smoke run exposed that `vitest`'s `expect` has no Playwright locator assertions (`toBeVisible`, `toHaveValue`) — the project uses `playwright-core` directly, not `@playwright/test`.
