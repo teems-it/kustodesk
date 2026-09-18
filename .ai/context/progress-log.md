@@ -8,6 +8,22 @@
 
 <!-- Add new session entries below, newest first. -->
 
+## 2026-09-18 — Session Summary (0005 Task 4 complete)
+
+**Commits:** `702a51e`, `d85a520` (baseline `25021be`)
+
+**What was done:**
+- `702a51e` — **0005 Task 4: launch-app helper + full-wiring E2E smoke test** — new `tests/e2e/helpers/launch-app.js`: `launchApp({ seedFixtureCluster, dataset })` starts the mock Kusto server (ephemeral loopback port), creates the isolated `KUSTODESK_DATA_DIR` temp dir, optionally pre-seeds `clusters.json`/`history.json` before launch (Store only creates missing files), launches the dev Electron binary with `KUSTODESK_E2E_TOKEN` + CI args, returns `{ app, win, mock, dataDir, cleanup }` (app.close → mock.stop → rm -rf). Also exports `noDisplay`, `waitForMockCommand`, `E2E_TOKEN`, `seededClusterDefinition` (Store-shaped id/createdAt/lastUsedAt so the app auto-selects the fixture cluster on boot)
+- `702a51e` — smoke.test.js refactored onto the helper (bare-launch assertions unchanged) + new full-wiring test proving the complete path store seed → renderer → IPC → kusto-client (E2E token seam) → real SDK over HTTP → mock server: seeded cluster auto-connects, mock receives `.show databases` with `db === ''` and the exact `Bearer` E2E token, renderer reflects mock data (cluster name, database dropdown = fixture DATABASES with TestDB auto-selected, status bar Connected, resources sidebar shows StormEvents + StormEventsByState)
+- Harness lesson (decision entry appended 2026-09-18): vitest's `expect` is NOT @playwright/test's — locator assertions use playwright-core wait APIs (`locator.waitFor`, `page.waitForFunction`); `waitForMockCommand` only proves the mock RECEIVED a command, so DOM waits must follow before asserting UI state
+- `d85a520` — pcs: Task 4 done; Next Step → Task 5 cluster lifecycle scenarios
+
+**Status after session:**
+- 0005 Tasks 1–4 DONE, Task 5 In Progress (not started). 118 unit+integration tests + 2 E2E smoke all green; working tree clean.
+
+**Next:**
+- 0005 Task 5 — cluster lifecycle scenarios: add/edit/delete cluster + `clusters.json` persistence + history cascade, test-connection success/failure, database dropdown from mock (spec scenarios 1–3), built on `launchApp()`
+
 ## 2026-09-17 — Session Summary (0005 Task 3 complete)
 
 **Commits:** `75dde02`, `4205685`, `06af08c`, `957df0b` (baseline `334b388`)
